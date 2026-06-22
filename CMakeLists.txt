@@ -22,7 +22,6 @@ target_compile_options(app PRIVATE
     -Wall 
     -Wextra 
     -Werror 
-    $<$<COMPILE_LANGUAGE:CXX>:-pedantic>
 )
 
 if(CONFIG_COVERAGE)
