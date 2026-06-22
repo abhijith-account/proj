@@ -1,5 +1,5 @@
 / {
-     aliases{
+    aliases {
         cdc-acm-uart0 = &uart0;
     };
 
@@ -15,5 +15,29 @@
         compatible = "vnd,watchdog";
         reg = <0x40002000 0x1000>;
         status = "okay";
+    };
+
+    rtc: fake_rtc@40003000 {
+        compatible = "vnd,rtc";
+        reg = <0x40003000 0x1000>;
+        status = "okay";
+    };
+
+    sim_flash: sim_flash@50000000 {
+        compatible = "zephyr,sim-flash";
+        reg = <0x50000000 0x40000>;
+        erase-block-size = <1024>;
+        write-block-size = <4>;
+        
+        partitions {
+            compatible = "fixed-partitions";
+            #address-cells = <1>;
+            #size-cells = <1>;
+
+            storage_partition: partition@3e000 {
+                label = "storage";
+                reg = <0x0003e000 0x00002000>;
+            };
+        };
     };
 };
