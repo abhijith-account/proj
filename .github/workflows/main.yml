@@ -1,0 +1,59 @@
+name: proj
+
+on:
+  push:
+     branches: [ main ]
+  pull_request:
+     branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    conatainer: zephyrprojectrtos/ci:latest
+   
+  steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Initialize Zephyr Workspace
+      run: |
+      	west init -l .
+      	west uptdate
+    
+    - name: Cross Compile for STM32 ARM (Zero Warnings)
+      run: |
+      	west build -b nucleo_f446re app --pristine -- -DCONFIG_COMPILER_WARNINGS-AS_ERRORS=y
+    
+    - name: Emulation Test via QEMU
+      run: |
+      	west build -b qemu_cortex_m4 app -t run pristine
+      
+    - name: Host GTest & Coverage Generation
+      run: |
+        mkdir -p tests/build
+        cd tests/build
+        cmake ..
+        make -j$(nproc)
+        
+        ./run_pm_tests
+        ./run_usb_shell_tests
+        ./run_battery_tests
+        ./run_static_memory_tests
+        ./run_config_tests
+        ./run_i2c_faults_tests
+        ./run_state_machine_tests
+        ./run_sync_tests
+        ./run_command_tests
+        
+    - name: Enforce 100% Line + Branch Coverage
+      run: |
+        chmod +x ./scripts/check_coverage.sh
+        ./scripts/check_coverage.sh
+    
+    - name: Archive Coverage HTML Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+      	name: Coverage-Dashboard
+      	path: coverage_report/

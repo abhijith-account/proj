@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "proj": {
+      "rel_path": "",
+      "name": "proj",
+      "buildConfigs": {},
+      "twisterConfigs": {},
+      "confFiles": {
+        "config": [],
+        "overlay": []
+      }
+    }
+  }
+}
