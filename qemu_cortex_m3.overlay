@@ -1,0 +1,11 @@
+i2c1: &i2c0 {
+    status = "okay";
+};
+
+iwdg: &watchdog0 {
+    status = "okay";
+};
+
+cdc_acm_uart0: &uart1 {
+    status = "okay";
+};

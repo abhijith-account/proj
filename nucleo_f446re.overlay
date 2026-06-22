@@ -1,0 +1,48 @@
+/* Enable the I2C1 Bus */
+&i2c1 {
+    status = "okay";
+    
+    /* SMBus requires 100 kHz for the Smart Battery */
+    clock-frequency = <I2C_BITRATE_STANDARD>; 
+
+    /* 1. LPS22HB Pressure Sensor */
+    lps22hb: lps22hb@5c {
+        compatible = "st,lps22hb-press";
+        reg = <0x5c>; 
+        status = "okay";
+    };
+
+    /* 2. Smart Battery (SBS 1.1) */
+    smart_battery: sbs_gauge@b {
+        compatible = "sbs,sbs-gauge";
+        reg = <0x0b>; 
+        status = "okay";
+    };
+
+    /* 3. FS3000 Flow Sensor */
+    fs3000: fs3000@28 {
+        compatible = "vnd,i2c-device"; 
+        reg = <0x28>;
+        status = "okay";
+    };
+};
+
+&iwdg {
+    status = "okay";
+};
+
+/ {
+    aliases {
+        cdc-acm-uart0 = &cdc_acm_uart0;
+    };
+};
+
+&usbotg_fs {
+    status = "okay";
+    pinctrl-0 = <&usb_otg_fs_dm_pa11 &usb_otg_fs_dp_pa12>;
+    pinctrl-names = "default";
+
+    cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
