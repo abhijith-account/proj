@@ -10,27 +10,27 @@ on:
 jobs:
   build-and-verify:
     runs-on: ubuntu-latest
-    conatainer: zephyrprojectrtos/ci:latest
+    container: zephyrprojectrtos/ci:latest
    
   steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
     
     - name: Initialize Zephyr Workspace
-      run: |
+      run:  |
       	west init -l .
-      	west uptdate
+      	west update
     
     - name: Cross Compile for STM32 ARM (Zero Warnings)
-      run: |
-      	west build -b nucleo_f446re app --pristine -- -DCONFIG_COMPILER_WARNINGS-AS_ERRORS=y
+      run:  |
+      	west build -b nucleo_f446re app --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
     
     - name: Emulation Test via QEMU
-      run: |
-      	west build -b qemu_cortex_m4 app -t run pristine
+      run:  |
+      	west build -b qemu_cortex_m4 app -t run --pristine
       
     - name: Host GTest & Coverage Generation
-      run: |
+      run:  |
         mkdir -p tests/build
         cd tests/build
         cmake ..
@@ -47,7 +47,7 @@ jobs:
         ./run_command_tests
         
     - name: Enforce 100% Line + Branch Coverage
-      run: |
+      run:  |
         chmod +x ./scripts/check_coverage.sh
         ./scripts/check_coverage.sh
     
