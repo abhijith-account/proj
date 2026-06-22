@@ -10,7 +10,7 @@ on:
 jobs:
   build-and-verify:
     runs-on: ubuntu-latest
-    container: zephyrprojectrtos/ci:latest
+    container: zephyrprojectrtos/ci:v0.26.11
     
     steps:
       - name: Checkout Repository
@@ -20,11 +20,9 @@ jobs:
         run: |
           west init -l .
           west update
-          
-          # 1. Register the Zephyr RTOS base with CMake
+         
           west zephyr-export
           
-          # 2. Find the pre-installed SDK (version-agnostic) and re-register it to the new GHA $HOME
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
           $SDK_DIR/setup.sh -c
           
