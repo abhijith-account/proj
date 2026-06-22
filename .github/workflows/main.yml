@@ -20,7 +20,12 @@ jobs:
         run: |
           west init -l .
           west update
-      
+          
+          west zephyr-export
+
+          SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-0.16.* | head -n 1)
+          $SDK_DIR/setup.sh -c
+          
       - name: Cross Compile for STM32 ARM (Zero Warnings)
         run: |
           west build -b nucleo_f446re . --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
