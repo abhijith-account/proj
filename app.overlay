@@ -25,4 +25,8 @@
         reg = <0x28>;
         status = "okay";
     };
+    
+    &iwdg {
+    status = "okay";
+    };
 };
