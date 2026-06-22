@@ -5,16 +5,16 @@
 
 LOG_MODULE_REGISTER(I2C_HW,LOG_LEVEL_WRN);
  
-void RetryStrategy::executeRecovery(const device* i2c_dev){
+void RetryStrategy::executeRecovery(const device* /* i2c_dev */){
     LOG_WRN("I2C Fault Detected. Executing Exponential Backoff Retry...");
     k_msleep(10);
 }
 
-void BusResetStrategy::executeRecovery(const device* i2c_dev){
+void BusResetStrategy::executeRecovery(const device* /* i2c_dev */){
     LOG_ERR("I2C Bus Hard-Locked.Toggling SCL to recover");
 }
 
-void FailSafeStrategy::executeRecovery(const device* i2c_dev){
+void FailSafeStrategy::executeRecovery(const device* /* i2c_dev */){
       LOG_ERR("I2C Critical Failure. Falling back to Last-known-Good data: %u",last_known_good_value);
 }
 

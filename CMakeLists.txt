@@ -22,6 +22,9 @@ target_compile_options(app PRIVATE
     -Wall 
     -Wextra 
     -Werror 
+    -Wno-pedantic
+    -Wno-variadic-macros
+    -Wno-vla
 )
 
 if(CONFIG_COVERAGE)
