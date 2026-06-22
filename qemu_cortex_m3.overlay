@@ -26,8 +26,6 @@
     sim_flash: sim_flash@50000000 {
         compatible = "zephyr,sim-flash";
         reg = <0x50000000 0x40000>;
-        erase-block-size = <1024>;
-        write-block-size = <4>;
         
         partitions {
             compatible = "fixed-partitions";
