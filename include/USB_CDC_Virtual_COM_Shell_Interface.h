@@ -1,6 +1,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
-#include <zephyr/drivers.h>
+#include <zephyr/drivers/uart.h>
 #include <zephyr/usb/usb_device.h>
 #include <array>
 #include <string_view>
