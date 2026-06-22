@@ -22,15 +22,26 @@
     sim_flash: sim_flash@50000000 {
         compatible = "zephyr,sim-flash";
         reg = <0x50000000 0x40000>;
-        
-        partitions {
-            compatible = "fixed-partitions";
-            #address-cells = <1>;
-            #size-cells = <1>;
+        #address-cells = <1>;
+        #size-cells = <1>;
+        erase-value = <0xff>;
 
-            storage_partition: partition@3e000 {
-                label = "storage";
-                reg = <0x0003e000 0x00002000>;
+        flash_sim0: flash_sim@0 {
+            status = "okay";
+            compatible = "soc-nv-flash";
+            erase-block-size = <1024>;
+            write-block-size = <4>;
+            reg = <0x00000000 0x40000>;
+
+            partitions {
+                compatible = "fixed-partitions";
+                #address-cells = <1>;
+                #size-cells = <1>;
+
+                storage_partition: partition@3e000 {
+                    label = "storage";
+                    reg = <0x0003e000 0x00002000>;
+                };
             };
         };
     };
