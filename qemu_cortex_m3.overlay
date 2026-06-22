@@ -1,11 +1,19 @@
-i2c1: &i2c0 {
-    status = "okay";
-};
+/ {
+     aliases{
+        cdc-acm-uart0 = &uart0;
+    };
 
-iwdg: &watchdog0 {
-    status = "okay";
-};
+    i2c1: fake_i2c@40001000 {
+        compatible = "vnd,i2c";
+        reg = <0x40001000 0x1000>;
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
+    };
 
-cdc_acm_uart0: &uart1 {
-    status = "okay";
+    iwdg: fake_watchdog@40002000 {
+        compatible = "vnd,watchdog";
+        reg = <0x40002000 0x1000>;
+        status = "okay";
+    };
 };
