@@ -23,11 +23,11 @@ jobs:
       
       - name: Cross Compile for STM32 ARM (Zero Warnings)
         run: |
-          west build -b nucleo_f446re app --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
+          west build -b nucleo_f446re . --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
       
       - name: Emulation Test via QEMU
         run: |
-          west build -b qemu_cortex_m4 app -t run --pristine
+          west build -b qemu_cortex_m4 . -t run --pristine
       
       - name: Host GTest & Coverage Generation
         run: |
