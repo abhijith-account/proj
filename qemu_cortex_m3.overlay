@@ -1,8 +1,4 @@
 / {
-    aliases {
-        cdc-acm-uart0 = &uart0;
-    };
-
     i2c1: fake_i2c@40001000 {
         compatible = "vnd,i2c";
         reg = <0x40001000 0x1000>;
@@ -38,4 +34,8 @@
             };
         };
     };
+};
+
+cdc_acm_uart0: &uart0 {
+    status = "okay";
 };
