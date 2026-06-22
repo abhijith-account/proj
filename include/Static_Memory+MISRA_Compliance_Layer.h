@@ -33,7 +33,7 @@ class StaticPool{
             k_mutex_unlock(&pool_mutex);
             
             if (ptr==nullptr){
-                LOG_ERR("StaticPool Out of Memory! Pool Size: %zu",N);
+                printk("[ERR] StaticPool Out of Memory! Pool Size: %zu\n", N);
             }
             return ptr;
         }
@@ -52,7 +52,7 @@ class StaticPool{
                 in_use[index]=false;
             }
             else{
-                LOG_ERR("Invalid pointer passed to deallocate");
+                printk("[ERR] Invalid pointer passed to deallocate\n");
             }
             k_mutex_unlock(&pool_mutex);
         }

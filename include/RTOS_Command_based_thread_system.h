@@ -11,7 +11,7 @@ class ICommand{
     
     virtual void execute() {} 
     
-    void operator delete(void* ptr) {}
+    void operator delete(void* /* ptr */) {}
     
     void destroy();
 };

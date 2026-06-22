@@ -41,7 +41,7 @@ void PowerManager::reportActivity(){
     current_mode=PowerMode::ACTIVE;
 }
 
-void PowerManager::rtc_alarm_handler(const device /* dev */,uint8_t /* chan_id */,uint32_t /* ticks */,void *user_data){
+void PowerManager::rtc_alarm_handler(const device* /* dev */,uint8_t /* chan_id */,uint32_t /* ticks */,void *user_data){
     auto* self=static_cast<PowerManager*>(user_data);
     LOG_WRN("=== 60s RTC Wakeup Triggered! Restoring System State ===");
     self->reportActivity();

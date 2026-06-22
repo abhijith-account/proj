@@ -1,6 +1,5 @@
 #include <zephyr/kernel.h>
 #include "Static_Memory+MISRA_Compliance_Layer.h"
-#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/debug/thread_analyzer.h>
 #ifdef IS_TEST_ENVIRONMENT
@@ -9,7 +8,7 @@
 #else 
     #define THREAD_LOOP_CONDITION true
 #endif
-
+LOG_MODULE_REGISTER(MEM_SYS, LOG_LEVEL_INF);
 void memory_monitor_thread(void){
     do{
     LOG_INF("=== [System Health] Thread Stack Watermarks ===");
