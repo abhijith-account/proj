@@ -21,9 +21,11 @@ jobs:
           west init -l .
           west update
           
+          # 1. Register the Zephyr RTOS base with CMake
           west zephyr-export
-
-          SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-0.16.* | head -n 1)
+          
+          # 2. Find the pre-installed SDK (version-agnostic) and re-register it to the new GHA $HOME
+          SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
           $SDK_DIR/setup.sh -c
           
       - name: Cross Compile for STM32 ARM (Zero Warnings)
