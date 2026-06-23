@@ -2,6 +2,7 @@
 #include <zephyr/logging/log.h>
 #include "Fault_Tolerant_I2C_Communication_Layer.h"
 #include <errno.h>
+#include <stdlib.h> // Required for rand() in QEMU mock generation
 
 LOG_MODULE_REGISTER(I2C_HW,LOG_LEVEL_WRN);
  
@@ -29,6 +30,18 @@ uint8_t FailSafeStrategy::getLastGood() const{
 I2CManager::I2CManager(const device* i2c_dev):i2c_dev(i2c_dev){}
 
 Result<uint8_t> I2CManager::readRegister(uint16_t sensor_addr,uint8_t reg_addr){
+#ifdef CONFIG_BOARD_QEMU_CORTEX_M3
+    // ==========================================
+    // EMULATOR MODE: Inject Simulated Sensor Data
+    // ==========================================
+    k_msleep(50); // Simulate I2C bus delay
+    uint8_t mock_data = 60 + (rand() % 40); // Generate dynamic 8-bit data
+    printk("<inf> SIM_I2C: Injected Mock Byte (Reg: 0x%02X) -> %u\n", reg_addr, mock_data);
+    return Result<uint8_t>::Ok(mock_data);
+#else
+    // ==========================================
+    // PHYSICAL HARDWARE MODE: Real I2C Read
+    // ==========================================
     uint8_t data=0;
     
     int err=i2c_reg_read_byte(i2c_dev,sensor_addr,reg_addr,&data);
@@ -44,9 +57,15 @@ Result<uint8_t> I2CManager::readRegister(uint16_t sensor_addr,uint8_t reg_addr){
     
     retry_strategy.executeRecovery(i2c_dev);
     return Result<uint8_t>::Err(I2CFault::NACK);
+#endif
 }
 
 Result<bool> I2CManager::writeRegister(uint16_t sensor_addr,uint8_t reg_addr,uint8_t val){
+#ifdef CONFIG_BOARD_QEMU_CORTEX_M3
+    k_msleep(10);
+    printk("<inf> SIM_I2C: Mock Write Success (Reg: 0x%02X) -> %u\n", reg_addr, val);
+    return Result<bool>::Ok(true);
+#else
     int err=i2c_reg_write_byte(i2c_dev,sensor_addr,reg_addr,val);
     
     if (err==0){
@@ -55,9 +74,16 @@ Result<bool> I2CManager::writeRegister(uint16_t sensor_addr,uint8_t reg_addr,uin
     
     retry_strategy.executeRecovery(i2c_dev);
     return Result<bool>::Err(I2CFault::NACK);
+#endif
 }
 
 Result<uint16_t> I2CManager::readWord(uint16_t sensor_addr,uint8_t reg_addr){
+#ifdef CONFIG_BOARD_QEMU_CORTEX_M3
+    k_msleep(50);
+    uint16_t mock_val = 900 + (rand() % 100); // Generate dynamic 16-bit data
+    printk("<inf> SIM_I2C: Injected Mock Word (Reg: 0x%02X) -> %u\n", reg_addr, mock_val);
+    return Result<uint16_t>::Ok(mock_val);
+#else
     uint8_t buf[2]={0,0};
     
     int err=i2c_burst_read(i2c_dev,sensor_addr,reg_addr,buf,2);
@@ -74,4 +100,5 @@ Result<uint16_t> I2CManager::readWord(uint16_t sensor_addr,uint8_t reg_addr){
     
     retry_strategy.executeRecovery(i2c_dev);
     return Result<uint16_t>::Err(I2CFault::NACK);
+#endif
 }

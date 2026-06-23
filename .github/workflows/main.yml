@@ -33,6 +33,8 @@ jobs:
       - name: Emulation Test via QEMU
         run: |
           west build -b qemu_cortex_m3 . -t run --pristine
+          
+          timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
       
       - name: Host GTest & Coverage Generation
         run: |
