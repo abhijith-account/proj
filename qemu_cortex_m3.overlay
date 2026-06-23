@@ -48,7 +48,8 @@
 cdc_acm_uart0: &uart0 {
     status = "okay";
 };
-
-rtc: &timer0 {
-    status = "okay";
-};
+rtc: fake_rtc@40003000 {
+        compatible = "vnd,rtc";
+        reg = <0x40003000 0x1000>;
+        status = "okay";
+    };
