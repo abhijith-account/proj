@@ -14,7 +14,7 @@
 LOG_MODULE_REGISTER(USB_CLI,LOG_LEVEL_INF);
 
 UsbCdcFacade::UsbCdcFacade():dtr_ready(false),rx_head(0),rx_tail(0){
-      dev = DEVICE_DT_GET(DT_ALIAS(cdc_acm_uart0));;
+      dev = DEVICE_DT_GET(DT_ALIAS(cdc_acm_uart0));
 }
 
 extern DeviceContext sys_context;
