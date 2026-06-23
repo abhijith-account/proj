@@ -1,10 +1,9 @@
 / {
-    /* 1. Map the alias to QEMU's real hardware UART */
     aliases {
         cdc-acm-uart0 = &uart0;
     };
 
-    /* 2. Mock I2C Bus */
+    /* The Golden Stub: We map all missing hardware to the I2C test driver */
     i2c1: fake_i2c@40001000 {
         compatible = "vnd,i2c";
         reg = <0x40001000 0x1000>;
@@ -13,20 +12,23 @@
         #size-cells = <0>;
     };
 
-    /* 3. Mock Watchdog */
     iwdg: fake_watchdog@40002000 {
-        compatible = "vnd,watchdog";
+        compatible = "vnd,i2c";
         reg = <0x40002000 0x1000>;
         status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
     };
 
     rtc: fake_rtc@40003000 {
-        compatible = "vnd,counter";
+        compatible = "vnd,i2c";
         reg = <0x40003000 0x1000>;
         status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
     };
 
-    /* 5. Simulated Flash for NVS */
+    /* Simulated Flash Drive for NVS */
     sim_flash: sim_flash@50000000 {
         compatible = "zephyr,sim-flash";
         reg = <0x50000000 0x8000>;
