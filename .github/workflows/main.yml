@@ -29,17 +29,20 @@ jobs:
       - name: Cross Compile for STM32 ARM
         run: |
           west build -b nucleo_f207zg . --pristine
-      
-      - name: Emulation Test via QEMU (Cortex-M4)
-        run: |
-          west build -b qemu_cortex_m3 . --pristine
-          
-          timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
           
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtest-dev
+          sudo apt-get install -y libgtest-dev qemu-system-arm
+      
+      - name: Emulation Test via QEMU (STM32 Cortex-M4)
+        run: |
+          # 1. Compile the firmware for the STM32F405 target
+          west build -b netduinoplus2 . --pristine
+          
+          # 2. Run the compiled binary directly using standard QEMU
+          # The timeout acts as our success condition (10s of stable execution)
+          timeout 10s qemu-system-arm -machine netduinoplus2 -nographic -kernel build/zephyr/zephyr.elf || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
       
       - name: Host GTest & Coverage Generation
         run: |
