@@ -10,8 +10,8 @@ LOG_MODULE_REGISTER(CONFIG_SYS,LOG_LEVEL_INF);
 ConfigStore ConfigStore::instance;
 
 ConfigStore::ConfigStore():initialized(false){
-  fs.flash_device=NVS_PARTITION_DEVICE;
-  fs.offset=FIXED_PARTITION_OFFSET(NVS_PARTITION);
+  fs.flash_device = DEVICE_DT_GET(DT_MTD_FROM_FIXED_PARTITION(DT_NODELABEL(storage_partition)));
+  fs.offset = DT_REG_ADDR(DT_NODELABEL(storage_partition));
   fs.sector_size=2048;
   fs.sector_count=4;
 }
