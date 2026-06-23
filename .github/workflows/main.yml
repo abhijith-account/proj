@@ -35,6 +35,11 @@ jobs:
           west build -b qemu_cortex_m3 . --pristine
           
           timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
+          
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev
       
       - name: Host GTest & Coverage Generation
         run: |
