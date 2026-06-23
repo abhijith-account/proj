@@ -1,5 +1,8 @@
 / {
-    /* 1. Mock I2C Bus */
+    aliases {
+        cdc-acm-uart0 = &uart0;
+    };
+    
     i2c1: fake_i2c@40001000 {
         compatible = "vnd,i2c";
         reg = <0x40001000 0x1000>;
@@ -8,14 +11,12 @@
         #size-cells = <0>;
     };
 
-    /* 2. Mock Watchdog */
     iwdg: fake_watchdog@40002000 {
         compatible = "vnd,watchdog";
         reg = <0x40002000 0x1000>;
         status = "okay";
     };
 
-    /* 3. Simulated Flash for NVS */
     sim_flash: sim_flash@50000000 {
         compatible = "zephyr,sim-flash";
         reg = <0x50000000 0x8000>;
@@ -44,12 +45,3 @@
     };
 };
 
-/* 4. Attach labels to QEMU's REAL hardware */
-cdc_acm_uart0: &uart0 {
-    status = "okay";
-};
-rtc: fake_rtc@40003000 {
-        compatible = "vnd,rtc";
-        reg = <0x40003000 0x1000>;
-        status = "okay";
-    };
