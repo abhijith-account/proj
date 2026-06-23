@@ -20,7 +20,7 @@ jobs:
         run: |
           west init -l .
           west update
-         
+          
           west zephyr-export
           
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
@@ -30,9 +30,9 @@ jobs:
         run: |
           west build -b nucleo_f446re . --pristine
       
-      - name: Emulation Test via QEMU
+      - name: Emulation Test via QEMU (Cortex-M4)
         run: |
-          west build -b qemu_cortex_m3 . -t run --pristine
+          west build -b mps2/an386 . --pristine
           
           timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
       
