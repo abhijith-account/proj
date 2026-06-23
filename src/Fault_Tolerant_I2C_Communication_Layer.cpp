@@ -36,7 +36,8 @@ Result<uint8_t> I2CManager::readRegister(uint16_t sensor_addr,uint8_t reg_addr){
     // ==========================================
     k_msleep(50); // Simulate I2C bus delay
     uint8_t mock_data = 60 + (rand() % 40); // Generate dynamic 8-bit data
-    printk("<inf> SIM_I2C: Injected Mock Byte (Reg: 0x%02X) -> %u\n", reg_addr, mock_data);
+    // ADDED sensor_addr HERE to satisfy the compiler
+    printk("<inf> SIM_I2C: Injected Mock Byte (Sensor: 0x%02X, Reg: 0x%02X) -> %u\n", sensor_addr, reg_addr, mock_data);
     return Result<uint8_t>::Ok(mock_data);
 #else
     // ==========================================
@@ -63,7 +64,8 @@ Result<uint8_t> I2CManager::readRegister(uint16_t sensor_addr,uint8_t reg_addr){
 Result<bool> I2CManager::writeRegister(uint16_t sensor_addr,uint8_t reg_addr,uint8_t val){
 #ifdef CONFIG_BOARD_QEMU_CORTEX_M3
     k_msleep(10);
-    printk("<inf> SIM_I2C: Mock Write Success (Reg: 0x%02X) -> %u\n", reg_addr, val);
+    // ADDED sensor_addr HERE
+    printk("<inf> SIM_I2C: Mock Write Success (Sensor: 0x%02X, Reg: 0x%02X) -> %u\n", sensor_addr, reg_addr, val);
     return Result<bool>::Ok(true);
 #else
     int err=i2c_reg_write_byte(i2c_dev,sensor_addr,reg_addr,val);
@@ -81,7 +83,8 @@ Result<uint16_t> I2CManager::readWord(uint16_t sensor_addr,uint8_t reg_addr){
 #ifdef CONFIG_BOARD_QEMU_CORTEX_M3
     k_msleep(50);
     uint16_t mock_val = 900 + (rand() % 100); // Generate dynamic 16-bit data
-    printk("<inf> SIM_I2C: Injected Mock Word (Reg: 0x%02X) -> %u\n", reg_addr, mock_val);
+    // ADDED sensor_addr HERE
+    printk("<inf> SIM_I2C: Injected Mock Word (Sensor: 0x%02X, Reg: 0x%02X) -> %u\n", sensor_addr, reg_addr, mock_val);
     return Result<uint16_t>::Ok(mock_val);
 #else
     uint8_t buf[2]={0,0};
