@@ -38,7 +38,7 @@ jobs:
       - name: Emulation Test via QEMU (STM32 Cortex-M4)
         run: |
           # 1. Compile the firmware for the STM32F405 target
-          west build -b netduinoplus2 . --pristine
+          west build -b stm32f405_core . --pristine
           
           # 2. Run the compiled binary directly using standard QEMU
           # The timeout acts as our success condition (10s of stable execution)
