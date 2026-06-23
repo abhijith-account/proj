@@ -100,6 +100,6 @@ void display_consumer_thread(void){
     }while(THREAD_LOOP_CONDITION);
 }
 
-K_THREAD_DEFINE(hr_prod_tid,1024,heart_rate_producer_thread,NULL,NULL,NULL,8,0,0);
-K_THREAD_DEFINE(disp_cons_tid,1024,display_consumer_thread,NULL,NULL,NULL,9,0,0);
+K_THREAD_DEFINE(hr_prod_tid,256,heart_rate_producer_thread,NULL,NULL,NULL,8,0,0);
+K_THREAD_DEFINE(disp_cons_tid,256,display_consumer_thread,NULL,NULL,NULL,9,0,0);
 

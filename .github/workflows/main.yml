@@ -28,7 +28,7 @@ jobs:
           
       - name: Cross Compile for STM32 ARM
         run: |
-          west build -b nucleo_f446re . --pristine
+          west build -b nucleo_f207zg . --pristine
       
       - name: Emulation Test via QEMU (Cortex-M4)
         run: |
