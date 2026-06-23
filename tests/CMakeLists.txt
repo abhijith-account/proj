@@ -25,14 +25,20 @@ file(WRITE ${MOCK_DIR}/zephyr/usb/usb_device.h "#pragma once\nextern \"C\" int u
 file(WRITE ${MOCK_DIR}/zephyr/drivers/watchdog.h "#pragma once\n#include <stdint.h>\n#define WDT_FLAG_RESET_SOC 1\n#define WDT_OPT_PAUSE_HALTED_BY_DBG 1\nstruct wdt_window { uint32_t min; uint32_t max; };\nstruct wdt_timeout_cfg { struct wdt_window window; void (*callback)(const struct device *, int); uint8_t flags; };\nextern \"C\" {\nint wdt_install_timeout(const struct device *dev, const struct wdt_timeout_cfg *cfg);\nint wdt_setup(const struct device *dev, uint8_t options);\nint wdt_feed(const struct device *dev, int channel_id);\n}\n")
 file(WRITE ${MOCK_DIR}/zephyr/drivers/i2c.h "#pragma once\n#include <stdint.h>\n#include <stddef.h>\nextern \"C\" {\nint i2c_read(const struct device *dev, uint8_t *buf, uint32_t num_bytes, uint16_t addr);\nint i2c_write(const struct device *dev, const uint8_t *buf, uint32_t num_bytes, uint16_t addr);\nint i2c_write_read(const struct device *dev, uint16_t addr, const void *write_buf, size_t num_write, void *read_buf, size_t num_read);\nint i2c_reg_read_byte(const struct device *dev, uint16_t dev_addr, uint8_t reg_addr, uint8_t *value);\nint i2c_reg_write_byte(const struct device *dev, uint16_t dev_addr, uint8_t reg_addr, uint8_t value);\nint i2c_burst_read(const struct device *dev, uint16_t dev_addr, uint8_t start_addr, uint8_t *buf, uint32_t num_bytes);\n}\n")
 file(WRITE ${MOCK_DIR}/zephyr/drivers/flash.h "#pragma once\n#include <sys/types.h>\nextern \"C\" {\nint flash_read(const struct device *dev, off_t offset, void *data, size_t len);\nint flash_write(const struct device *dev, off_t offset, const void *data, size_t len);\nint flash_erase(const struct device *dev, off_t offset, size_t size);\n}\n")
-file(MAKE_DIRECTORY ${MOCK_DIR}/zephyr/fs)
-file(WRITE ${MOCK_DIR}/zephyr/fs/nvs.h "#pragma once\n#include <stdint.h>\n#include <sys/types.h>\nstruct device;\nstruct nvs_fs { const struct device *flash_device; off_t offset; uint32_t sector_size; uint32_t sector_count; };\nextern \"C\" {\nint nvs_mount(struct nvs_fs *fs);\nssize_t nvs_read(struct nvs_fs *fs, uint16_t id, void *data, size_t len);\nssize_t nvs_write(struct nvs_fs *fs, uint16_t id, const void *data, size_t len);\n}\n")
+
+# -- EDITED: Changed from zephyr/fs to zephyr/kvss for Zephyr 4.x compatibility --
+file(MAKE_DIRECTORY ${MOCK_DIR}/zephyr/kvss)
+file(WRITE ${MOCK_DIR}/zephyr/kvss/nvs.h "#pragma once\n#include <stdint.h>\n#include <sys/types.h>\nstruct device;\nstruct nvs_fs { const struct device *flash_device; off_t offset; uint32_t sector_size; uint32_t sector_count; };\nextern \"C\" {\nint nvs_mount(struct nvs_fs *fs);\nssize_t nvs_read(struct nvs_fs *fs, uint16_t id, void *data, size_t len);\nssize_t nvs_write(struct nvs_fs *fs, uint16_t id, const void *data, size_t len);\n}\n")
+
 file(MAKE_DIRECTORY ${MOCK_DIR}/zephyr/sys)
 file(WRITE ${MOCK_DIR}/zephyr/sys/reboot.h "#pragma once\n#define SYS_REBOOT_COLD 0\n#define SYS_REBOOT_WARM 1\nextern \"C\" void sys_reboot(int type);\n")
 file(MAKE_DIRECTORY ${MOCK_DIR}/zephyr/storage)
 file(WRITE ${MOCK_DIR}/zephyr/storage/flash_map.h "#pragma once\n#include <stdint.h>\n#include <sys/types.h>\n#define FIXED_PARTITION_ID(...) 0\n#define FIXED_PARTITION_DEVICE(...) nullptr\n#define FIXED_PARTITION_OFFSET(...) 0\nstruct flash_area { uint8_t fa_id; };\nextern \"C\" {\nint flash_area_open(uint8_t id, const struct flash_area **fa);\nvoid flash_area_close(const struct flash_area *fa);\nint flash_area_read(const struct flash_area *fa, off_t off, void *dst, size_t len);\nint flash_area_write(const struct flash_area *fa, off_t off, const void *src, size_t len);\n}\n")
 
-# 3. Generate a mock globals file for external hardware pointers and virtual time
+# -- EDITED: Added mock directory and header for Thread Analyzer --
+file(MAKE_DIRECTORY ${MOCK_DIR}/zephyr/debug)
+file(WRITE ${MOCK_DIR}/zephyr/debug/thread_analyzer.h "#pragma once\nstatic inline void thread_analyzer_print(unsigned int cpu) {}\n")
+
 # 3. Generate a mock globals file for external hardware pointers and virtual time
 file(WRITE ${CMAKE_BINARY_DIR}/mock_globals.cpp "#include <zephyr/device.h>\n#include <stdint.h>\n#include <zephyr/pm/pm.h>\n#include <zephyr/pm/device.h>\n#include <zephyr/drivers/watchdog.h>\n#include <zephyr/drivers/counter.h>\n\n__attribute__((weak)) const device* i2c_hardware = nullptr;\n\nuint32_t virtual_uptime = 0;\n\nextern \"C\" {\n__attribute__((weak)) bool device_is_ready(const struct device *dev) { return true; }\n__attribute__((weak)) int wdt_install_timeout(const struct device *dev, const struct wdt_timeout_cfg *cfg) { return 0; }\n__attribute__((weak)) int wdt_setup(const struct device *dev, uint8_t options) { return 0; }\n__attribute__((weak)) int wdt_feed(const struct device *dev, int channel_id) { return 0; }\n__attribute__((weak)) void pm_policy_state_lock_get(uint8_t state, uint8_t substate_id) {}\n__attribute__((weak)) void pm_policy_state_lock_put(uint8_t state, uint8_t substate_id) {}\n__attribute__((weak)) int pm_device_action_run(const struct device *dev, enum pm_device_action action) { return 0; }\n__attribute__((weak)) uint32_t counter_us_to_ticks(const struct device *dev, uint64_t us) { return 0; }\n__attribute__((weak)) int counter_set_channel_alarm(const struct device *dev, uint8_t chan_id, const struct counter_alarm_cfg *alarm_cfg) { return 0; }\n}\n")
 
@@ -86,17 +92,17 @@ add_executable(run_state_machine_tests
 )
 
 add_executable(run_sync_tests
-	test_synchronization.cpp
-	../src/RTOS_Synchronization_Layer.cpp
-	${CMAKE_BINARY_DIR}/mock_globals.cpp
+    test_synchronization.cpp
+    ../src/RTOS_Synchronization_Layer.cpp
+    ${CMAKE_BINARY_DIR}/mock_globals.cpp
 )
 
 add_executable(run_command_tests
-	test_rtos_commands.cpp
-	../src/RTOS_Command_based_thread_system.cpp
+    test_rtos_commands.cpp
+    ../src/RTOS_Command_based_thread_system.cpp
         ../src/Device_State_Machine+Watchdog.cpp
         ../src/Power_Management_System.cpp
-	${CMAKE_BINARY_DIR}/mock_globals.cpp
+    ${CMAKE_BINARY_DIR}/mock_globals.cpp
 )
 
 # 5. Include our auto-generated mocks and your real headers
@@ -121,7 +127,7 @@ target_include_directories(run_static_memory_tests PRIVATE
 )
 
 target_include_directories(run_config_tests PRIVATE
-   ${MOCK_DIR}		
+   ${MOCK_DIR}      
    ../include
 )
 
