@@ -10,7 +10,7 @@ on:
 jobs:
   build-and-verify:
     runs-on: ubuntu-latest
-    container: zephyrprojectrtos/ci:v0.26.11
+    container: zephyrprojectrtos/ci:latest
     
     steps:
       - name: Checkout Repository
@@ -32,7 +32,7 @@ jobs:
       
       - name: Emulation Test via QEMU (Cortex-M4)
         run: |
-          west build -b mps2/an386 . --pristine
+          west build -b qemu_cortex_m4 . --pristine
           
           timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
       
