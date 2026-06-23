@@ -12,7 +12,7 @@ LOG_MODULE_REGISTER(MEM_SYS, LOG_LEVEL_INF);
 void memory_monitor_thread(void){
     do{
     LOG_INF("=== [System Health] Thread Stack Watermarks ===");
-    thread_analyzer_print();
+    thread_analyzer_print(0);
     k_msleep(5000);
     }while(THREAD_LOOP_CONDITION);
 }
