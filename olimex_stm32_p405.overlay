@@ -2,10 +2,16 @@
 
 / {
     aliases {
-        /* Route the virtual USB shell to standard UART in QEMU */
-        cdc-acm-uart0 = &usart2; 
+        /* Route the virtual USB shell to an ISOLATED UART to prevent conflicts */
+        cdc-acm-uart0 = &usart1; 
     };
 };
+
+/* Enable the isolated UART so the Shell compiles safely */
+&usart1 { status = "okay"; };
+
+/* Ensure standard UART is enabled for the OS Logger */
+&usart2 { status = "okay"; };
 
 /* Enable physical hardware endpoints so Zephyr instantiates the real drivers */
 &i2c1 { 
@@ -17,9 +23,6 @@
 
 &rtc { status = "okay"; };
 &iwdg { status = "okay"; };
-
-/* Ensure standard UART is enabled for the shell fallback */
-&usart2 { status = "okay"; };
 
 /* Define a 128KB NVS storage partition at the end of the 1MB Flash */
 &flash0 {
