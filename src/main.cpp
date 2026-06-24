@@ -9,6 +9,7 @@
 #include "Static_Memory+MISRA_Compliance_Layer.h"
 #include <zephyr/debug/thread_analyzer.h>
 #include "Power_Management_System.h"
+#include <zephyr/sys/printk.h>
 
 LOG_MODULE_REGISTER(MAIN_OS, LOG_LEVEL_INF);
 
@@ -17,6 +18,7 @@ DeviceContext sys_context;
 extern ZephyrWorkQueue status_work;
 
 int main(void) {
+    printk("QEMU_BOOT_MARKER\n");
     LOG_INF("Command-Based RTOS Booting");
     
     ConfigStore& config=ConfigStore::getInstance();

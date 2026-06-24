@@ -43,14 +43,13 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          # Build for QEMU-supported STM32F405 board
+          # Build for QEMU-supported STM32F405 board.
           # QEMU does not officially support nucleo_f446re as a machine.
           west build -b olimex_stm32_h405 . --pristine
 
           rm -f qemu_execution_report.txt
           rm -f qemu_stderr.log
-          rm -f qemu_uart0.log
-          rm -f qemu_uart1.log
+          rm -f qemu_uart*.log
 
           set +e
           timeout 60s qemu-system-arm \
@@ -61,6 +60,12 @@ jobs:
             -kernel build/zephyr/zephyr.elf \
             -serial file:qemu_uart0.log \
             -serial file:qemu_uart1.log \
+            -serial file:qemu_uart2.log \
+            -serial file:qemu_uart3.log \
+            -serial file:qemu_uart4.log \
+            -serial file:qemu_uart5.log \
+            -serial file:qemu_uart6.log \
+            -serial file:qemu_uart7.log \
             > qemu_stderr.log 2>&1
 
           EXIT_CODE=$?
@@ -70,11 +75,12 @@ jobs:
             echo "===== QEMU STDERR ====="
             cat qemu_stderr.log || true
             echo ""
-            echo "===== UART0 ====="
-            cat qemu_uart0.log || true
-            echo ""
-            echo "===== UART1 ====="
-            cat qemu_uart1.log || true
+
+            for i in 0 1 2 3 4 5 6 7; do
+              echo "===== UART${i} ====="
+              cat qemu_uart${i}.log || true
+              echo ""
+            done
           } > qemu_execution_report.txt
 
           cat qemu_execution_report.txt
@@ -108,8 +114,7 @@ jobs:
           path: |
             qemu_execution_report.txt
             qemu_stderr.log
-            qemu_uart0.log
-            qemu_uart1.log
+            qemu_uart*.log
           if-no-files-found: ignore
 
       - name: Build and run host unit tests
