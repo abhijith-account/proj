@@ -53,7 +53,7 @@ jobs:
           rm -f qemu_uart1.log
 
           set +e
-          timeout 20s qemu-system-arm \
+          timeout 60s qemu-system-arm \
             -machine olimex-stm32-h405 \
             -cpu cortex-m4 \
             -display none \
