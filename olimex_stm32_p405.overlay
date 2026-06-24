@@ -1,4 +1,4 @@
-/* netduinoplus2.overlay */
+/* olimex_stm32_p405.overlay */
 
 / {
     /* Define our dummy peripherals for the missing QEMU silicon */
@@ -6,6 +6,10 @@
         compatible = "vnd,i2c";
         status = "okay";
         reg = <0x1000 0x100>;
+        
+        /* REQUIRED: Tell the compiler how child sensors are addressed */
+        #address-cells = <1>;
+        #size-cells = <0>;
     };
 
     dummy_rtc: rtc {
