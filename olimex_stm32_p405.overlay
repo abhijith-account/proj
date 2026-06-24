@@ -2,20 +2,24 @@
 
 / {
     aliases {
-        /* Route the virtual USB shell to an ISOLATED UART to prevent conflicts */
+        /* Route the virtual USB shell to an ISOLATED UART */
         cdc-acm-uart0 = &usart1; 
     };
 };
 
-/* Enable the isolated UART so the Shell compiles safely */
+/* CRITICAL FIX: Turn off the physical USB controller to free up the PA9 pin */
+&usbotg_fs {
+    status = "disabled";
+};
+
+/* Enable the isolated UART so the Shell compiles and boots safely */
 &usart1 { 
     status = "okay"; 
-    /* Assign default physical pins to satisfy the STM32 driver requirements */
     pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
     pinctrl-names = "default";
 };
 
-/* Ensure standard UART is enabled for the OS Logger (Pins are defined by the base board) */
+/* Ensure standard UART is enabled for the OS Logger */
 &usart2 { 
     status = "okay"; 
 };
