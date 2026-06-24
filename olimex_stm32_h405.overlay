@@ -2,7 +2,7 @@
 
 / {
     chosen {
-        /* Route console back to USART2 (The default QEMU serial0 for this board) */
+        /* Route console to USART2 (QEMU's default serial0) */
         zephyr,console = &usart2;
     };
     aliases {
@@ -10,16 +10,34 @@
     };
 };
 
+/* =================================================================== */
+/* CRITICAL FIX: Decouple from the physical crystal oscillator (HSE).  */
+/* QEMU does not simulate crystals. Using HSI prevents the boot hang.  */
+/* =================================================================== */
+&clk_hse {
+    status = "disabled";
+};
+
+&clk_hsi {
+    status = "okay";
+};
+
+&pll {
+    clocks = <&clk_hsi>;
+    /* HSI runs at 16MHz. Divide by 16 to get 1MHz PLL input to match standard scaling */
+    div-m = <16>; 
+};
+
+/* =================================================================== */
+
 &usbotg_fs {
     status = "disabled";
 };
 
-/* Disable usart1 since we aren't using it for the smoke test */
 &usart1 {
     status = "disabled";
 };
 
-/* Enable USART2 for standard logging */
 &usart2 {
     status = "okay";
     current-speed = <115200>;

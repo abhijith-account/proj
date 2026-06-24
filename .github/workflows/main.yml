@@ -43,8 +43,10 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          # 1. Standard build (Macro is now safely injected via .conf)
-          west build -b olimex_stm32_h405 . --pristine
+          # 1. Use Zephyr's native EXTRA flags to guarantee the macro survives
+          west build -b olimex_stm32_h405 . --pristine -- \
+            -DEXTRA_CFLAGS="-DQEMU_SMOKE_TEST" \
+            -DEXTRA_CXXFLAGS="-DQEMU_SMOKE_TEST"
 
           echo "===== RESOLVED CHOSEN NODE ====="
           grep -A30 "chosen" build/zephyr/zephyr.dts || true
