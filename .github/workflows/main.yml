@@ -53,7 +53,7 @@ jobs:
           set +e
           # 2. Run netduinoplus2 with a clean stdio mapping
           timeout -s SIGINT 30s qemu-system-arm \
-          -machine netduinoplus2 \
+          -machine olimex-stm32-h405\
           -cpu cortex-m4 \
           -display none \
           -monitor none \
