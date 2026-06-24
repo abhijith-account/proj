@@ -8,7 +8,13 @@
 };
 
 /* Enable physical hardware endpoints so Zephyr instantiates the real drivers */
-&i2c1 { status = "okay"; };
+&i2c1 { 
+    status = "okay"; 
+    /* Assign default physical pins to satisfy the STM32 driver requirements */
+    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
+    pinctrl-names = "default";
+};
+
 &rtc { status = "okay"; };
 &iwdg { status = "okay"; };
 
