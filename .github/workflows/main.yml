@@ -47,8 +47,8 @@ jobs:
           -display none \
           -monitor none \
           -kernel build/zephyr/zephyr.elf \
-          -serial null \
           -serial stdio \
+          -serial null \
           > qemu_execution_report.txt 2>&1
 
           # 3. Capture exit code
