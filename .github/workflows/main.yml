@@ -37,29 +37,33 @@ jobs:
       
       - name: Emulation Test via QEMU (STM32 Cortex-M4)
         run: |
-          # 1. Compile the firmware for the STM32F405 target
           west build -b olimex_stm32_p405 . --pristine
-          
-          # 2. Run QEMU using line-buffered stdio, and let bash handle the file writing
-          # -serial null: Wires the silent USART1 to nowhere
-          # -serial stdio: Wires the active USART2 to standard output
-          set +e 
-          timeout 20s qemu-system-arm -machine netduinoplus2 -display none -serial null -serial stdio > qemu_execution_report.txt 2>&1
-          
-          # 3. Capture the standard exit code safely
+
+          # 2. Run QEMU and explicitly load the Zephyr firmware image
+          set +e
+          timeout 20s qemu-system-arm \
+          -machine netduinoplus2 \
+          -cpu cortex-m4 \
+          -nographic \
+          -kernel build/zephyr/zephyr.elf \
+          -serial null \
+          -serial stdio \
+          > qemu_execution_report.txt 2>&1
+
+          # 3. Capture exit code
           EXIT_CODE=$?
           set -e
-          
-          # 4. Print the report to the console so it shows up in GitHub's web interface
+
+          # 4. Print QEMU report
           cat qemu_execution_report.txt
-          
-          # 5. Evaluate success (124 means it successfully survived the timeout)
+
+          # 5. 124 means firmware kept running until timeout, which is expected
           if [ $EXIT_CODE -eq 124 ]; then
-              echo "Firmware booted successfully! (Hit timeout)"
-              exit 0
+             echo "Firmware booted successfully! (Hit timeout)"
+             exit 0
           else
-              echo "Firmware crashed with code $EXIT_CODE!"
-              exit 1
+             echo "Firmware crashed with code $EXIT_CODE!"
+             exit 1
           fi
 
       - name: Archive QEMU Execution Report
