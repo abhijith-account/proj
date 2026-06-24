@@ -8,15 +8,21 @@
 };
 
 /* Enable the isolated UART so the Shell compiles safely */
-&usart1 { status = "okay"; };
+&usart1 { 
+    status = "okay"; 
+    /* Assign default physical pins to satisfy the STM32 driver requirements */
+    pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+    pinctrl-names = "default";
+};
 
-/* Ensure standard UART is enabled for the OS Logger */
-&usart2 { status = "okay"; };
+/* Ensure standard UART is enabled for the OS Logger (Pins are defined by the base board) */
+&usart2 { 
+    status = "okay"; 
+};
 
 /* Enable physical hardware endpoints so Zephyr instantiates the real drivers */
 &i2c1 { 
     status = "okay"; 
-    /* Assign default physical pins to satisfy the STM32 driver requirements */
     pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
     pinctrl-names = "default";
 };
