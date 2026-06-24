@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+
   pull_request:
     branches:
       - main
       - master
+
   workflow_dispatch:
 
 jobs:
@@ -41,21 +43,15 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          # 1. Build firmware for STM32F405 target
+          # Build for QEMU-supported STM32F405 board
+          # QEMU does not officially support nucleo_f446re as a machine.
           west build -b olimex_stm32_h405 . --pristine
 
-          # 2. Clean old QEMU reports
           rm -f qemu_execution_report.txt
           rm -f qemu_stderr.log
           rm -f qemu_uart0.log
           rm -f qemu_uart1.log
 
-          # 3. Run QEMU
-          #
-          # NOTE:
-          # - QEMU does not officially emulate nucleo_f446re.
-          # - olimex_stm32_p405 uses STM32F405, so we run it on QEMU's STM32F405 machine.
-          # - Firmware is expected to run forever, so timeout exit code 124 is treated as success.
           set +e
           timeout 20s qemu-system-arm \
             -machine olimex-stm32-h405 \
@@ -70,7 +66,6 @@ jobs:
           EXIT_CODE=$?
           set -e
 
-          # 4. Merge QEMU output into one report
           {
             echo "===== QEMU STDERR ====="
             cat qemu_stderr.log || true
@@ -82,10 +77,8 @@ jobs:
             cat qemu_uart1.log || true
           } > qemu_execution_report.txt
 
-          # 5. Print report in GitHub Actions log
           cat qemu_execution_report.txt
 
-          # 6. Evaluate QEMU result
           if [ "$EXIT_CODE" -eq 124 ]; then
             echo "Firmware survived QEMU execution until timeout. Treating as success."
 
