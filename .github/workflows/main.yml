@@ -44,7 +44,8 @@ jobs:
           timeout 20s qemu-system-arm \
           -machine netduinoplus2 \
           -cpu cortex-m4 \
-          -nographic \
+          -display none \
+          -monitor none \
           -kernel build/zephyr/zephyr.elf \
           -serial null \
           -serial stdio \
