@@ -2,41 +2,25 @@
 
 / {
     chosen {
-        /* Route Zephyr console to USART1 (QEMU's primary serial0) */
-        zephyr,console = &usart1;
+        /* Route Zephyr console to USART2 */
+        zephyr,console = &usart2;
     };
     aliases {
-        serial0 = &usart1;
+        serial0 = &usart2;
     };
 };
 
-/* ========================================================== */
-/* 1. CLOCK FIX: Bypass the PLL completely. Run raw HSI.      */
-/* QEMU does not toggle the PLLRDY bit, causing infinite hang.*/
-/* ========================================================== */
-&clk_hse { status = "disabled"; };
-&pll { status = "disabled"; };
-&clk_hsi { status = "okay"; };
-
-&rcc {
-    clocks = <&clk_hsi>;
-    clock-frequency = <DT_FREQ_M(16)>;
-};
-
-/* ========================================================== */
-/* 2. HARDWARE FIX: Align Console and Disable unused params   */
-/* ========================================================== */
+/* Disable physical USB to prevent pin conflicts */
 &usbotg_fs { status = "disabled"; };
+&usart1 { status = "disabled"; };
 
-/* Enable USART1 for QEMU's default -serial stdio port */
-&usart1 {
-    status = "okay";
+/* Enable the primary physical console */
+&usart2 { 
+    status = "okay"; 
     current-speed = <115200>;
-    pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
-    pinctrl-names = "default";
 };
 
-&usart2 { status = "disabled"; };
+/* Keep unimplemented QEMU peripherals disabled for smoke boot */
 &i2c1 { status = "disabled"; };
 &rtc { status = "disabled"; };
 &iwdg { status = "disabled"; };
