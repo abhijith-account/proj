@@ -40,18 +40,19 @@ jobs:
           # 1. Compile the firmware for the STM32F405 target
           west build -b olimex_stm32_p405 . --pristine
           
-          # 2. Run QEMU, redirect output to the report file
+          # 2. Run QEMU natively routing USART2 straight to the text file
+          # -display none: Disables the GUI
+          # -serial null: Wires USART1 to nowhere
+          # -serial file:... : Wires USART2 directly to our report file
           set +e 
-          timeout 20s qemu-system-arm -machine netduinoplus2 -nographic -kernel build/zephyr/zephyr.elf > qemu_execution_report.txt 2>&1
-          
-          # 3. Capture the standard exit code safely
+          timeout 20s qemu-system-arm -machine netduinoplus2 -display none -serial null -serial file:qemu_execution_report.txt -kernel build/zephyr/zephyr.elf
           EXIT_CODE=$?
           set -e
           
-          # 4. Print the report to the console so it shows up in GitHub's web interface
+          # 3. Print the report to the console so it shows up in GitHub's web interface
           cat qemu_execution_report.txt
           
-          # 5. Evaluate success (124 means it successfully survived the timeout)
+          # 4. Evaluate success (124 means it successfully survived the timeout)
           if [ $EXIT_CODE -eq 124 ]; then
               echo "Firmware booted successfully! (Hit timeout)"
               exit 0
