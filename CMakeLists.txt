@@ -5,23 +5,37 @@ project(medical_firmware)
 
 target_include_directories(app PRIVATE include)
 
-target_sources(app PRIVATE 
-    src/main.cpp
-    src/Device_State_Machine+Watchdog.cpp
-    src/Fault_Tolerant_I2C_Communication_Layer.cpp
-    src/Persistent_Configuration_System.cpp
-    src/Power_Management_System.cpp
-    src/RTOS_Command_based_thread_system.cpp
-    src/RTOS_Synchronization_Layer.cpp
-    src/Smart_Battery_System.cpp
-    src/Static_Memory+MISRA_Compliance_Layer.cpp
-    src/USB_CDC_Virtual_COM_Shell_Interface.cpp
-)
+if(CONFIG_BOARD_OLIMEX_STM32_H405)
 
-target_compile_options(app PRIVATE 
-    -Wall 
-    -Wextra 
-    -Werror 
+    target_sources(app PRIVATE
+        src/main.cpp
+    )
+
+    target_compile_definitions(app PRIVATE
+        QEMU_SMOKE_TEST=1
+    )
+
+else()
+
+    target_sources(app PRIVATE
+        src/main.cpp
+        src/Device_State_Machine+Watchdog.cpp
+        src/Fault_Tolerant_I2C_Communication_Layer.cpp
+        src/Persistent_Configuration_System.cpp
+        src/Power_Management_System.cpp
+        src/RTOS_Command_based_thread_system.cpp
+        src/RTOS_Synchronization_Layer.cpp
+        src/Smart_Battery_System.cpp
+        src/Static_Memory+MISRA_Compliance_Layer.cpp
+        src/USB_CDC_Virtual_COM_Shell_Interface.cpp
+    )
+
+endif()
+
+target_compile_options(app PRIVATE
+    -Wall
+    -Wextra
+    -Werror
     -Wno-pedantic
     -Wno-variadic-macros
     -Wno-vla

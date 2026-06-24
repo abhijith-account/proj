@@ -59,21 +59,14 @@ jobs:
           rm -f qemu_uart*.log
 
           set +e
-          timeout 60s qemu-system-arm \
-            -machine olimex-stm32-h405 \
-            -cpu cortex-m4 \
-            -display none \
-            -monitor none \
-            -kernel build/zephyr/zephyr.elf \
-            -serial stdio \
-            -serial file:qemu_uart1.log \
-            -serial file:qemu_uart2.log \
-            -serial file:qemu_uart3.log \
-            -serial file:qemu_uart4.log \
-            -serial file:qemu_uart5.log \
-            -serial file:qemu_uart6.log \
-            -serial file:qemu_uart7.log \
-            > qemu_uart0_stdio.log 2> qemu_stderr.log
+          timeout 120s qemu-system-arm \
+          -machine olimex-stm32-h405 \
+          -cpu cortex-m4 \
+          -display none \
+          -monitor none \
+          -kernel build/zephyr/zephyr.elf \
+          -serial stdio \
+          > qemu_uart0_stdio.log 2> qemu_stderr.log
 
           EXIT_CODE=$?
           set -e

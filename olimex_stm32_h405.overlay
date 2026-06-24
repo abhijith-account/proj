@@ -3,20 +3,10 @@
 / {
     chosen {
         zephyr,console = &usart1;
-        zephyr,shell-uart = &usart1;
     };
 
     aliases {
         serial0 = &usart1;
-        serial1 = &usart2;
-
-        /*
-         * Your USB_CDC_Virtual_COM_Shell_Interface.cpp uses:
-         * DEVICE_DT_GET(DT_ALIAS(cdc_acm_uart0))
-         *
-         * USB is disabled in QEMU, so keep this alias mapped to USART1.
-         */
-        cdc-acm-uart0 = &usart1;
     };
 };
 
@@ -31,43 +21,15 @@
     pinctrl-names = "default";
 };
 
-&usart2 {
-    status = "okay";
-    current-speed = <115200>;
-    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
-    pinctrl-names = "default";
-};
-
-/*
- * Important:
- * Do not enable I2C / RTC / IWDG for QEMU unless your code has QEMU mocks.
- * QEMU's STM32F405 model exposes USARTs, but many STM32 peripherals are
- * unimplemented or only partially implemented.
- */
-
+/* Keep unimplemented QEMU peripherals disabled for smoke boot */
 &i2c1 {
-    status = "okay";
-    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
-    pinctrl-names = "default";
+    status = "disabled";
 };
 
 &rtc {
-    status = "okay";
+    status = "disabled";
 };
 
 &iwdg {
-    status = "okay";
-};
-
-&flash0 {
-    partitions {
-        compatible = "fixed-partitions";
-        #address-cells = <1>;
-        #size-cells = <1>;
-
-        storage_partition: partition@E0000 {
-            label = "storage";
-            reg = <0x000E0000 0x00020000>;
-        };
-    };
+    status = "disabled";
 };
