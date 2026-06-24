@@ -2,34 +2,28 @@
 
 / {
     chosen {
-        /*
-         * For QEMU netduinoplus2, keep console and shell on USART1.
-         * This maps more reliably to the first QEMU -serial backend.
-         */
         zephyr,console = &usart1;
         zephyr,shell-uart = &usart1;
+        zephyr,log-uart = &log_uart;
     };
 
     aliases {
         serial0 = &usart1;
         serial1 = &usart2;
-
-        /*
-         * Keep this alias because the application code uses:
-         * DEVICE_DT_GET(DT_ALIAS(cdc_acm_uart0))
-         *
-         * USB is disabled in QEMU, so map the alias to USART1.
-         */
         cdc-acm-uart0 = &usart1;
+    };
+
+    log_uart: log-uart {
+        compatible = "zephyr,log-uart";
+        status = "okay";
+        uarts = <&usart1>;
     };
 };
 
-/* QEMU does not emulate physical USB for this board */
 &usbotg_fs {
     status = "disabled";
 };
 
-/* Primary QEMU console UART */
 &usart1 {
     status = "okay";
     current-speed = <115200>;
@@ -37,7 +31,6 @@
     pinctrl-names = "default";
 };
 
-/* Secondary UART kept enabled for diagnostics */
 &usart2 {
     status = "okay";
     current-speed = <115200>;
