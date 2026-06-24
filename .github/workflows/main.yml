@@ -11,60 +11,93 @@ jobs:
   build-and-verify:
     runs-on: ubuntu-latest
     container: zephyrprojectrtos/ci:latest
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Initialize Zephyr Workspace
         run: |
           west init -l .
           west update
-          
           west zephyr-export
-          
+
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
           $SDK_DIR/setup.sh -c
-          
+
+      - name: Install System Dependencies
+        run: |
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          else
+            SUDO=
+          fi
+
+          $SUDO apt-get update
+          $SUDO apt-get install -y qemu-system-arm libgtest-dev
+
       - name: Cross Compile for Physical STM32 ARM
         run: |
           west build -b nucleo_f446re . --pristine
-          
-      - name: Install System Dependencies
+
+      - name: Emulation Test via QEMU STM32F405
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtest-dev qemu-system-arm
-      
-      - name: Emulation Test via QEMU (STM32 Cortex-M4)
-        run: |
+          # 1. Compile firmware for STM32F405 target
           west build -b olimex_stm32_p405 . --pristine
 
-          # 2. Run QEMU and explicitly load the Zephyr firmware image
+          # 2. Remove old reports
+          rm -f qemu_execution_report.txt
+          rm -f qemu_stderr.log
+          rm -f qemu_uart0.log
+          rm -f qemu_uart1.log
+
+          # 3. Run QEMU
+          # -kernel loads the Zephyr ELF into QEMU
+          # -monitor none avoids stdio conflict
+          # -serial file captures both possible UART outputs
           set +e
           timeout 20s qemu-system-arm \
-          -machine netduinoplus2 \
-          -cpu cortex-m4 \
-          -display none \
-          -monitor none \
-          -kernel build/zephyr/zephyr.elf \
-          -serial stdio \
-          -serial null \
-          > qemu_execution_report.txt 2>&1
+            -machine netduinoplus2 \
+            -cpu cortex-m4 \
+            -display none \
+            -monitor none \
+            -kernel build/zephyr/zephyr.elf \
+            -serial file:qemu_uart0.log \
+            -serial file:qemu_uart1.log \
+            > qemu_stderr.log 2>&1
 
-          # 3. Capture exit code
           EXIT_CODE=$?
           set -e
 
-          # 4. Print QEMU report
+          # 4. Combine all QEMU output into one report
+          {
+            echo "===== QEMU STDERR ====="
+            cat qemu_stderr.log || true
+            echo ""
+            echo "===== UART0 ====="
+            cat qemu_uart0.log || true
+            echo ""
+            echo "===== UART1 ====="
+            cat qemu_uart1.log || true
+          } > qemu_execution_report.txt
+
+          # 5. Print report in GitHub Actions console
           cat qemu_execution_report.txt
 
-          # 5. 124 means firmware kept running until timeout, which is expected
-          if [ $EXIT_CODE -eq 124 ]; then
-             echo "Firmware booted successfully! (Hit timeout)"
-             exit 0
+          # 6. Evaluate QEMU result
+          # 124 means QEMU was killed by timeout, which is expected for firmware.
+          if [ "$EXIT_CODE" -eq 124 ]; then
+            if grep -aEq "Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|System Statistics|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+              echo "Firmware booted successfully and UART logs were captured."
+              exit 0
+            else
+              echo "Firmware ran until timeout, but no Zephyr UART logs were captured."
+              echo "This means the firmware is running silently or Zephyr console is not mapped to a QEMU UART."
+              exit 1
+            fi
           else
-             echo "Firmware crashed with code $EXIT_CODE!"
-             exit 1
+            echo "Firmware crashed or QEMU failed with code $EXIT_CODE."
+            exit 1
           fi
 
       - name: Archive QEMU Execution Report
@@ -72,15 +105,21 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: QEMU-Execution-Log
-          path: qemu_execution_report.txt
-      
-      - name: Host GTest & Coverage Generation
+          path: |
+            qemu_execution_report.txt
+            qemu_stderr.log
+            qemu_uart0.log
+            qemu_uart1.log
+          if-no-files-found: ignore
+
+      - name: Host GTest and Coverage Generation
         run: |
           mkdir -p tests/build
           cd tests/build
+
           cmake ..
           make -j$(nproc)
-          
+
           ./run_pm_tests
           ./run_usb_shell_tests
           ./run_battery_tests
@@ -90,15 +129,16 @@ jobs:
           ./run_state_machine_tests
           ./run_sync_tests
           ./run_command_tests
-        
-      - name: Enforce 100% Line + Branch Coverage
+
+      - name: Enforce 100 Percent Line and Branch Coverage
         run: |
           chmod +x ./scripts/check_coverage.sh
           ./scripts/check_coverage.sh
-      
+
       - name: Archive Coverage HTML Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Coverage-Dashboard
           path: coverage_report/
+          if-no-files-found: ignore

@@ -1,40 +1,48 @@
 /* olimex_stm32_p405.overlay */
 
 / {
+    chosen {
+        zephyr,console = &usart2;
+        zephyr,shell-uart = &usart1;
+    };
+
     aliases {
-        /* Route the virtual USB shell to an ISOLATED UART */
-        cdc-acm-uart0 = &usart1; 
+        cdc-acm-uart0 = &usart1;
     };
 };
 
-/* CRITICAL FIX: Turn off the physical USB controller to free up the PA9 pin */
 &usbotg_fs {
     status = "disabled";
 };
 
-/* Enable the isolated UART so the Shell compiles and boots safely */
-&usart1 { 
-    status = "okay"; 
+&usart1 {
+    status = "okay";
+    current-speed = <115200>;
     pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
     pinctrl-names = "default";
 };
 
-/* Ensure standard UART is enabled for the OS Logger */
-&usart2 { 
-    status = "okay"; 
+&usart2 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+    pinctrl-names = "default";
 };
 
-/* Enable physical hardware endpoints so Zephyr instantiates the real drivers */
-&i2c1 { 
-    status = "okay"; 
+&i2c1 {
+    status = "okay";
     pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
     pinctrl-names = "default";
 };
 
-&rtc { status = "okay"; };
-&iwdg { status = "okay"; };
+&rtc {
+    status = "okay";
+};
 
-/* Define a 128KB NVS storage partition at the end of the 1MB Flash */
+&iwdg {
+    status = "okay";
+};
+
 &flash0 {
     partitions {
         compatible = "fixed-partitions";
