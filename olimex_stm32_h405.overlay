@@ -2,48 +2,41 @@
 
 / {
     chosen {
-        /* Route console to USART2 (QEMU's default serial0) */
-        zephyr,console = &usart2;
+        /* Route Zephyr console to USART1 (QEMU's primary serial0) */
+        zephyr,console = &usart1;
     };
     aliases {
-        serial0 = &usart2;
+        serial0 = &usart1;
     };
 };
 
-/* =================================================================== */
-/* CRITICAL FIX: Decouple from the physical crystal oscillator (HSE).  */
-/* QEMU does not simulate crystals. Using HSI prevents the boot hang.  */
-/* =================================================================== */
-&clk_hse {
-    status = "disabled";
-};
+/* ========================================================== */
+/* 1. CLOCK FIX: Bypass the PLL completely. Run raw HSI.      */
+/* QEMU does not toggle the PLLRDY bit, causing infinite hang.*/
+/* ========================================================== */
+&clk_hse { status = "disabled"; };
+&pll { status = "disabled"; };
+&clk_hsi { status = "okay"; };
 
-&clk_hsi {
-    status = "okay";
-};
-
-&pll {
+&rcc {
     clocks = <&clk_hsi>;
-    /* HSI runs at 16MHz. Divide by 16 to get 1MHz PLL input to match standard scaling */
-    div-m = <16>; 
+    clock-frequency = <DT_FREQ_M(16)>;
 };
 
-/* =================================================================== */
+/* ========================================================== */
+/* 2. HARDWARE FIX: Align Console and Disable unused params   */
+/* ========================================================== */
+&usbotg_fs { status = "disabled"; };
 
-&usbotg_fs {
-    status = "disabled";
-};
-
+/* Enable USART1 for QEMU's default -serial stdio port */
 &usart1 {
-    status = "disabled";
-};
-
-&usart2 {
     status = "okay";
     current-speed = <115200>;
+    pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+    pinctrl-names = "default";
 };
 
-/* Keep unimplemented QEMU peripherals disabled for smoke boot */
+&usart2 { status = "disabled"; };
 &i2c1 { status = "disabled"; };
 &rtc { status = "disabled"; };
 &iwdg { status = "disabled"; };

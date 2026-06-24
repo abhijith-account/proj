@@ -43,20 +43,21 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          west build -b olimex_stm32_h405 . --pristine
+          # 1. Build with the native EXTRA flags to lock in the macro
+          west build -b olimex_stm32_h405 . --pristine -- \
+            -DEXTRA_CFLAGS="-DQEMU_SMOKE_TEST" \
+            -DEXTRA_CXXFLAGS="-DQEMU_SMOKE_TEST"
 
-          rm -f qemu_execution_report.txt qemu_uart*.log qemu_stderr.log
+          rm -f qemu_execution_report.txt qemu_uart0_stdio.log qemu_stderr.log
 
           set +e
-          # 1. Use netduinoplus2 (QEMU's internal STM32F405 model)
-          # 2. Use `-serial null -serial stdio` to align QEMU with Zephyr's USART2
+          # 2. Run netduinoplus2 with a clean stdio mapping
           timeout -s SIGINT 30s qemu-system-arm \
           -machine netduinoplus2 \
           -cpu cortex-m4 \
           -display none \
           -monitor none \
           -kernel build/zephyr/zephyr.elf \
-          -serial null \
           -serial stdio \
           > qemu_uart0_stdio.log 2> qemu_stderr.log
 
@@ -67,14 +68,14 @@ jobs:
             echo "===== QEMU STDERR ====="
             cat qemu_stderr.log || true
             echo ""
-            echo "===== UART2 (Console) ====="
+            echo "===== UART1 (Console) ====="
             cat qemu_uart0_stdio.log || true
           } > qemu_execution_report.txt
 
           cat qemu_execution_report.txt
 
-          # Check for the Smoke Test macro or the standard OS boot logs
-          if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting" qemu_execution_report.txt; then
+          # 3. Check for the Smoke Test marker
+          if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr" qemu_execution_report.txt; then
             echo "SUCCESS: UART boot logs were captured!"
             exit 0
           else
