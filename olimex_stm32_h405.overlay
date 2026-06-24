@@ -2,11 +2,11 @@
 
 / {
     chosen {
-        zephyr,console = &usart1;
+        /* Route console back to USART2 (The default QEMU serial0 for this board) */
+        zephyr,console = &usart2;
     };
-
     aliases {
-        serial0 = &usart1;
+        serial0 = &usart2;
     };
 };
 
@@ -14,22 +14,18 @@
     status = "disabled";
 };
 
+/* Disable usart1 since we aren't using it for the smoke test */
 &usart1 {
+    status = "disabled";
+};
+
+/* Enable USART2 for standard logging */
+&usart2 {
     status = "okay";
     current-speed = <115200>;
-    pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
-    pinctrl-names = "default";
 };
 
 /* Keep unimplemented QEMU peripherals disabled for smoke boot */
-&i2c1 {
-    status = "disabled";
-};
-
-&rtc {
-    status = "disabled";
-};
-
-&iwdg {
-    status = "disabled";
-};
+&i2c1 { status = "disabled"; };
+&rtc { status = "disabled"; };
+&iwdg { status = "disabled"; };

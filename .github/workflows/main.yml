@@ -43,24 +43,16 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          # 1. Build and explicitly pass the QEMU_SMOKE_TEST macro to CMake
-          west build -b olimex_stm32_h405 . --pristine -- \
-            -DCMAKE_CXX_FLAGS="-DQEMU_SMOKE_TEST" \
-            -DCMAKE_C_FLAGS="-DQEMU_SMOKE_TEST"
+          # 1. Standard build (Macro is now safely injected via .conf)
+          west build -b olimex_stm32_h405 . --pristine
 
           echo "===== RESOLVED CHOSEN NODE ====="
           grep -A30 "chosen" build/zephyr/zephyr.dts || true
 
-          echo "===== UART / CONSOLE CONFIG ====="
-          grep -E "CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_PRINTK|CONFIG_BOOT_BANNER|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_LOG_MODE_IMMEDIATE|CONFIG_UART_INTERRUPT_DRIVEN|CONFIG_UART_LINE_CTRL" build/zephyr/.config || true
-
-          rm -f qemu_execution_report.txt
-          rm -f qemu_uart0_stdio.log
-          rm -f qemu_stderr.log
-          rm -f qemu_uart*.log
+          rm -f qemu_execution_report.txt qemu_uart*.log qemu_stderr.log
 
           set +e
-          # 2. Use -s SIGINT so QEMU intercepts the timeout, flushes its buffers, and shuts down cleanly
+          # 2. Map ALL possible UARTs so nothing escapes the emulator
           timeout -s SIGINT 120s qemu-system-arm \
           -machine olimex-stm32-h405 \
           -cpu cortex-m4 \
@@ -68,6 +60,9 @@ jobs:
           -monitor none \
           -kernel build/zephyr/zephyr.elf \
           -serial stdio \
+          -serial file:qemu_uart1.log \
+          -serial file:qemu_uart2.log \
+          -serial file:qemu_uart3.log \
           > qemu_uart0_stdio.log 2> qemu_stderr.log
 
           EXIT_CODE=$?
@@ -82,7 +77,7 @@ jobs:
             cat qemu_uart0_stdio.log || true
             echo ""
 
-            for i in 1 2 3 4 5 6 7; do
+            for i in 1 2 3; do
               echo "===== UART${i} ====="
               cat qemu_uart${i}.log || true
               echo ""
@@ -91,20 +86,20 @@ jobs:
 
           cat qemu_execution_report.txt
 
-          # 3. 124 (timeout) or 130 (SIGINT kill) both indicate the firmware survived the clock
+          # 3. Evaluate success
           if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 130 ] || [ "$EXIT_CODE" -eq 0 ]; then
             if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
               echo "UART boot logs were captured successfully."
               exit 0
             else
               echo "Firmware reached timeout, but UART logs were still not captured."
-              echo "This means either main() is not reached or Zephyr console is not bound to USART1."
               exit 1
             fi
           else
             echo "Firmware crashed or QEMU failed with code $EXIT_CODE."
             exit 1
           fi
+          
       - name: Upload QEMU execution logs
         if: always()
         uses: actions/upload-artifact@v4
