@@ -26,6 +26,7 @@ target_compile_options(app PRIVATE
     -Wno-variadic-macros
     -Wno-vla
     -Wno-missing-field-initializers
+    -Wno-unused-parameter
 )
 
 if(CONFIG_COVERAGE)
