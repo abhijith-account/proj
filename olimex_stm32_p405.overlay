@@ -1,5 +1,12 @@
 /* olimex_stm32_p405.overlay */
 
+/ {
+    aliases {
+        /* Route the virtual USB shell to standard UART in QEMU */
+        cdc-acm-uart0 = &usart2; 
+    };
+};
+
 /* 1. Hijack the physical STM32 hardware and replace the drivers with QEMU mocks */
 &i2c1 { 
     compatible = "vnd,i2c";
@@ -16,6 +23,11 @@
 
 &iwdg { 
     compatible = "vnd,watchdog";
+    status = "okay";
+};
+
+/* Ensure standard UART is enabled for the shell fallback */
+&usart2 {
     status = "okay";
 };
 
