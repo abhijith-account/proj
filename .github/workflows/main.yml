@@ -26,7 +26,7 @@ jobs:
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
           $SDK_DIR/setup.sh -c
           
-      - name: Cross Compile for STM32 ARM
+      - name: Cross Compile for Physical STM32 ARM
         run: |
           west build -b nucleo_f446re . --pristine
           
@@ -40,9 +40,29 @@ jobs:
           # 1. Compile the firmware for the STM32F405 target
           west build -b olimex_stm32_p405 . --pristine
           
-          # 2. Run the compiled binary directly using standard QEMU
-          # The timeout acts as our success condition (10s of stable execution)
-          timeout 10s qemu-system-arm -machine netduinoplus2 -nographic -kernel build/zephyr/zephyr.elf || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
+          # 2. Run QEMU, save to report, but temporarily turn off auto-fail
+          set +e 
+          timeout 20s qemu-system-arm -machine netduinoplus2 -nographic -kernel build/zephyr/zephyr.elf | tee qemu_execution_report.txt
+          
+          # 3. Capture the exit code of the 'timeout' command (left side of the pipe)
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          
+          # 4. Evaluate success (124 means it successfully survived the timeout)
+          if [ $EXIT_CODE -eq 124 ]; then
+              echo "Firmware booted successfully! (Hit timeout)"
+              exit 0
+          else
+              echo "Firmware crashed with code $EXIT_CODE!"
+              exit 1
+          fi
+
+      - name: Archive QEMU Execution Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QEMU-Execution-Log
+          path: qemu_execution_report.txt
       
       - name: Host GTest & Coverage Generation
         run: |
