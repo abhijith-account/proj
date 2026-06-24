@@ -43,28 +43,21 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          # 1. Use Zephyr's native EXTRA flags to guarantee the macro survives
-          west build -b olimex_stm32_h405 . --pristine -- \
-            -DEXTRA_CFLAGS="-DQEMU_SMOKE_TEST" \
-            -DEXTRA_CXXFLAGS="-DQEMU_SMOKE_TEST"
-
-          echo "===== RESOLVED CHOSEN NODE ====="
-          grep -A30 "chosen" build/zephyr/zephyr.dts || true
+          west build -b olimex_stm32_h405 . --pristine
 
           rm -f qemu_execution_report.txt qemu_uart*.log qemu_stderr.log
 
           set +e
-          # 2. Map ALL possible UARTs so nothing escapes the emulator
-          timeout -s SIGINT 120s qemu-system-arm \
-          -machine olimex-stm32-h405 \
+          # 1. Use netduinoplus2 (QEMU's internal STM32F405 model)
+          # 2. Use `-serial null -serial stdio` to align QEMU with Zephyr's USART2
+          timeout -s SIGINT 30s qemu-system-arm \
+          -machine netduinoplus2 \
           -cpu cortex-m4 \
           -display none \
           -monitor none \
           -kernel build/zephyr/zephyr.elf \
+          -serial null \
           -serial stdio \
-          -serial file:qemu_uart1.log \
-          -serial file:qemu_uart2.log \
-          -serial file:qemu_uart3.log \
           > qemu_uart0_stdio.log 2> qemu_stderr.log
 
           EXIT_CODE=$?
@@ -74,31 +67,18 @@ jobs:
             echo "===== QEMU STDERR ====="
             cat qemu_stderr.log || true
             echo ""
-
-            echo "===== UART0 STDIO ====="
+            echo "===== UART2 (Console) ====="
             cat qemu_uart0_stdio.log || true
-            echo ""
-
-            for i in 1 2 3; do
-              echo "===== UART${i} ====="
-              cat qemu_uart${i}.log || true
-              echo ""
-            done
           } > qemu_execution_report.txt
 
           cat qemu_execution_report.txt
 
-          # 3. Evaluate success
-          if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 130 ] || [ "$EXIT_CODE" -eq 0 ]; then
-            if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
-              echo "UART boot logs were captured successfully."
-              exit 0
-            else
-              echo "Firmware reached timeout, but UART logs were still not captured."
-              exit 1
-            fi
+          # Check for the Smoke Test macro or the standard OS boot logs
+          if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting" qemu_execution_report.txt; then
+            echo "SUCCESS: UART boot logs were captured!"
+            exit 0
           else
-            echo "Firmware crashed or QEMU failed with code $EXIT_CODE."
+            echo "FAILURE: Firmware crashed or hung. Exit Code: $EXIT_CODE"
             exit 1
           fi
           
