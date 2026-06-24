@@ -7,31 +7,15 @@
     };
 };
 
-/* 1. Hijack the physical STM32 hardware and replace the drivers with QEMU mocks */
-&i2c1 { 
-    compatible = "vnd,i2c";
-    status = "okay";
-    /* Tell the compiler how mock child sensors are addressed */
-    #address-cells = <1>;
-    #size-cells = <0>;
-};
-
-&rtc { 
-    compatible = "vnd,rtc";
-    status = "okay";
-};
-
-&iwdg { 
-    compatible = "vnd,watchdog";
-    status = "okay";
-};
+/* Enable physical hardware endpoints so Zephyr instantiates the real drivers */
+&i2c1 { status = "okay"; };
+&rtc { status = "okay"; };
+&iwdg { status = "okay"; };
 
 /* Ensure standard UART is enabled for the shell fallback */
-&usart2 {
-    status = "okay";
-};
+&usart2 { status = "okay"; };
 
-/* 2. Define a 128KB NVS storage partition at the end of the 1MB Flash */
+/* Define a 128KB NVS storage partition at the end of the 1MB Flash */
 &flash0 {
     partitions {
         compatible = "fixed-partitions";
