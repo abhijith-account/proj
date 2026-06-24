@@ -47,7 +47,14 @@ jobs:
           # QEMU does not officially support nucleo_f446re as a machine.
           west build -b olimex_stm32_h405 . --pristine
 
+          echo "===== RESOLVED CHOSEN NODE ====="
+          grep -A30 "chosen" build/zephyr/zephyr.dts || true
+
+          echo "===== UART / CONSOLE CONFIG ====="
+          grep -E "CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_PRINTK|CONFIG_BOOT_BANNER|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_LOG_MODE_IMMEDIATE|CONFIG_UART_INTERRUPT_DRIVEN|CONFIG_UART_LINE_CTRL" build/zephyr/.config || true
+
           rm -f qemu_execution_report.txt
+          rm -f qemu_uart0_stdio.log
           rm -f qemu_stderr.log
           rm -f qemu_uart*.log
 
@@ -58,7 +65,7 @@ jobs:
             -display none \
             -monitor none \
             -kernel build/zephyr/zephyr.elf \
-            -serial file:qemu_uart0.log \
+            -serial stdio \
             -serial file:qemu_uart1.log \
             -serial file:qemu_uart2.log \
             -serial file:qemu_uart3.log \
@@ -66,7 +73,7 @@ jobs:
             -serial file:qemu_uart5.log \
             -serial file:qemu_uart6.log \
             -serial file:qemu_uart7.log \
-            > qemu_stderr.log 2>&1
+            > qemu_uart0_stdio.log 2> qemu_stderr.log
 
           EXIT_CODE=$?
           set -e
@@ -76,7 +83,11 @@ jobs:
             cat qemu_stderr.log || true
             echo ""
 
-            for i in 0 1 2 3 4 5 6 7; do
+            echo "===== UART0 STDIO ====="
+            cat qemu_uart0_stdio.log || true
+            echo ""
+
+            for i in 1 2 3 4 5 6 7; do
               echo "===== UART${i} ====="
               cat qemu_uart${i}.log || true
               echo ""
@@ -86,20 +97,25 @@ jobs:
           cat qemu_execution_report.txt
 
           if [ "$EXIT_CODE" -eq 124 ]; then
-            echo "Firmware survived QEMU execution until timeout. Treating as success."
-
-            if grep -aEq "Booting Zephyr|QEMU_BOOT_MARKER|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+            if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
               echo "UART boot logs were captured."
+              exit 0
             else
-              echo "UART logs were not captured, but firmware did not crash."
-              echo "This is treated as pass because timeout means firmware kept running."
+              echo "Firmware reached timeout, but UART logs were still not captured."
+              echo "This means either main() is not reached or Zephyr console is not bound to USART1."
+              exit 1
             fi
-
-            exit 0
 
           elif [ "$EXIT_CODE" -eq 0 ]; then
             echo "QEMU exited normally."
-            exit 0
+
+            if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+              echo "UART boot logs were captured."
+              exit 0
+            else
+              echo "QEMU exited normally, but no UART boot logs were captured."
+              exit 1
+            fi
 
           else
             echo "Firmware crashed or QEMU failed with code $EXIT_CODE."
@@ -114,6 +130,7 @@ jobs:
           path: |
             qemu_execution_report.txt
             qemu_stderr.log
+            qemu_uart0_stdio.log
             qemu_uart*.log
           if-no-files-found: ignore
 

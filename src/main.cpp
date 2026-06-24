@@ -18,7 +18,10 @@ DeviceContext sys_context;
 extern ZephyrWorkQueue status_work;
 
 int main(void) {
-    printk("QEMU_BOOT_MARKER\n");
+    for (int i = 0; i < 5; i++) {
+        printk("QEMU_BOOT_MARKER %d\n", i);
+        k_msleep(200);
+    }
     LOG_INF("Command-Based RTOS Booting");
     
     ConfigStore& config=ConfigStore::getInstance();
