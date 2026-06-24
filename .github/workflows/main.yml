@@ -43,9 +43,10 @@ jobs:
 
       - name: Compile and run STM32F405 firmware in QEMU
         run: |
-          # Build for QEMU-supported STM32F405 board.
-          # QEMU does not officially support nucleo_f446re as a machine.
-          west build -b olimex_stm32_h405 . --pristine
+          # 1. Build and explicitly pass the QEMU_SMOKE_TEST macro to CMake
+          west build -b olimex_stm32_h405 . --pristine -- \
+            -DCMAKE_CXX_FLAGS="-DQEMU_SMOKE_TEST" \
+            -DCMAKE_C_FLAGS="-DQEMU_SMOKE_TEST"
 
           echo "===== RESOLVED CHOSEN NODE ====="
           grep -A30 "chosen" build/zephyr/zephyr.dts || true
@@ -59,7 +60,8 @@ jobs:
           rm -f qemu_uart*.log
 
           set +e
-          timeout 120s qemu-system-arm \
+          # 2. Use -s SIGINT so QEMU intercepts the timeout, flushes its buffers, and shuts down cleanly
+          timeout -s SIGINT 120s qemu-system-arm \
           -machine olimex-stm32-h405 \
           -cpu cortex-m4 \
           -display none \
@@ -89,32 +91,20 @@ jobs:
 
           cat qemu_execution_report.txt
 
-          if [ "$EXIT_CODE" -eq 124 ]; then
+          # 3. 124 (timeout) or 130 (SIGINT kill) both indicate the firmware survived the clock
+          if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 130 ] || [ "$EXIT_CODE" -eq 0 ]; then
             if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
-              echo "UART boot logs were captured."
+              echo "UART boot logs were captured successfully."
               exit 0
             else
               echo "Firmware reached timeout, but UART logs were still not captured."
               echo "This means either main() is not reached or Zephyr console is not bound to USART1."
               exit 1
             fi
-
-          elif [ "$EXIT_CODE" -eq 0 ]; then
-            echo "QEMU exited normally."
-
-            if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
-              echo "UART boot logs were captured."
-              exit 0
-            else
-              echo "QEMU exited normally, but no UART boot logs were captured."
-              exit 1
-            fi
-
           else
             echo "Firmware crashed or QEMU failed with code $EXIT_CODE."
             exit 1
           fi
-
       - name: Upload QEMU execution logs
         if: always()
         uses: actions/upload-artifact@v4
