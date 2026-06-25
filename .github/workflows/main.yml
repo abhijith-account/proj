@@ -46,7 +46,7 @@ jobs:
             libgtest-dev \
             binutils
 
-      - name: Build YOUR firmware for olimex_stm32_h405 with granular startup probe
+      - name: Build YOUR firmware for olimex_stm32_h405 with startup probe
         run: |
           west build -b olimex_stm32_h405 . --pristine -- -DQEMU_RUNTIME_PROBE=ON
 
@@ -83,6 +83,28 @@ jobs:
           echo ""
           echo "===== LINKER MAP INIT / DRIVER SECTIONS ====="
           grep -nE "qemu_probe|PRE_KERNEL|POST_KERNEL|APPLICATION|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" build/zephyr/zephyr.map || true
+
+      - name: Generate Zephyr init-level report
+        run: |
+          rm -f zephyr_initlevels.txt
+
+          west build -t initlevels > zephyr_initlevels.txt 2>&1 || true
+
+          echo ""
+          echo "===== FULL ZEPHYR INIT LEVELS ====="
+          cat zephyr_initlevels.txt || true
+
+          echo ""
+          echo "===== INIT ORDER AROUND QEMU PROBE P0 ====="
+          grep -n -A60 -B30 "qemu_probe_pre_kernel_1_p0" zephyr_initlevels.txt || true
+
+          echo ""
+          echo "===== INIT ORDER AROUND PRE_KERNEL_1 ====="
+          grep -n -A120 -B20 "PRE_KERNEL_1" zephyr_initlevels.txt || true
+
+          echo ""
+          echo "===== INIT ORDER SUSPECTS ====="
+          grep -nE "qemu_probe|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" zephyr_initlevels.txt || true
 
       - name: Run YOUR firmware in QEMU manually
         run: |
@@ -206,7 +228,7 @@ jobs:
           if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P0" qemu_execution_report.txt; then
             echo "FAIL: Firmware reached PRE_KERNEL_1 priority 0 only."
             echo "Likely hang is another PRE_KERNEL_1 priority 0 initializer after qemu_probe_pre_kernel_1_p0."
-            echo "Check the linker map / init symbols printed in the previous build step."
+            echo "Check zephyr_initlevels.txt and the linker map output."
             exit 1
           fi
 
@@ -233,6 +255,7 @@ jobs:
             qemu_stdout.log
             qemu_stderr.log
             qemu_uart*.log
+            zephyr_initlevels.txt
             build/zephyr/zephyr.map
             build/zephyr/zephyr.dts
             build/zephyr/.config
