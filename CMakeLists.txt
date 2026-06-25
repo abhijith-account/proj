@@ -8,8 +8,17 @@ target_include_directories(app PRIVATE include)
 if(CONFIG_BOARD_OLIMEX_STM32_H405)
 
     target_sources(app PRIVATE
-        src/main.cpp
-    )
+    src/main.cpp
+    src/Device_State_Machine+Watchdog.cpp
+    src/Fault_Tolerant_I2C_Communication_Layer.cpp
+    src/Persistent_Configuration_System.cpp
+    src/Power_Management_System.cpp
+    src/RTOS_Command_based_thread_system.cpp
+    src/RTOS_Synchronization_Layer.cpp
+    src/Smart_Battery_System.cpp
+    src/Static_Memory+MISRA_Compliance_Layer.cpp
+    src/USB_CDC_Virtual_COM_Shell_Interface.cpp
+)
 
 else()
 
