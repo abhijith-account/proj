@@ -8,26 +8,44 @@
 
     aliases {
         serial0 = &usart2;
-
-        /*
-         * Your USB_CDC_Virtual_COM_Shell_Interface.cpp uses:
-         * DEVICE_DT_GET(DT_ALIAS(cdc_acm_uart0))
-         *
-         * USB is disabled in QEMU, so map this alias to USART2.
-         */
         cdc-acm-uart0 = &usart2;
     };
 };
 
-&usbotg_fs {
+/*
+ * QEMU-safe clock configuration:
+ * Do not use HSE/PLL. Use internal HSI directly.
+ */
+&clk_hsi {
+    status = "okay";
+};
+
+&clk_hse {
     status = "disabled";
 };
 
+&pll {
+    status = "disabled";
+};
+
+&rcc {
+    clocks = <&clk_hsi>;
+    clock-frequency = <16000000>;
+    ahb-prescaler = <1>;
+    apb1-prescaler = <1>;
+    apb2-prescaler = <1>;
+};
+
+/* USART2 is the default console UART for olimex_stm32_h405 */
 &usart2 {
     status = "okay";
     current-speed = <115200>;
     pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
     pinctrl-names = "default";
+};
+
+&usbotg_fs {
+    status = "disabled";
 };
 
 /* Disable QEMU-unreliable peripherals for smoke boot */
