@@ -2,25 +2,43 @@
 
 / {
     chosen {
-        /* Route Zephyr console to USART2 */
         zephyr,console = &usart2;
+        zephyr,shell-uart = &usart2;
     };
+
     aliases {
         serial0 = &usart2;
+
+        /*
+         * Your USB_CDC_Virtual_COM_Shell_Interface.cpp uses:
+         * DEVICE_DT_GET(DT_ALIAS(cdc_acm_uart0))
+         *
+         * USB is disabled in QEMU, so map this alias to USART2.
+         */
+        cdc-acm-uart0 = &usart2;
     };
 };
 
-/* Disable physical USB to prevent pin conflicts */
-&usbotg_fs { status = "disabled"; };
-&usart1 { status = "disabled"; };
-
-/* Enable the primary physical console */
-&usart2 { 
-    status = "okay"; 
-    current-speed = <115200>;
+&usbotg_fs {
+    status = "disabled";
 };
 
-/* Keep unimplemented QEMU peripherals disabled for smoke boot */
-&i2c1 { status = "disabled"; };
-&rtc { status = "disabled"; };
-&iwdg { status = "disabled"; };
+&usart2 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+    pinctrl-names = "default";
+};
+
+/* Disable QEMU-unreliable peripherals for smoke boot */
+&i2c1 {
+    status = "disabled";
+};
+
+&rtc {
+    status = "disabled";
+};
+
+&iwdg {
+    status = "disabled";
+};
