@@ -1,16 +1,21 @@
-#include <stdint.h>
 #include <zephyr/init.h>
 
+/*
+ * Direct ARM semihosting SYS_WRITE0.
+ *
+ * Works only when QEMU is launched with:
+ * -semihosting-config enable=on,target=native
+ */
 static void qemu_write0(const char *s)
 {
-    register uint32_t op __asm__("r0") = 0x04;
-    register const char *msg __asm__("r1") = s;
-
     __asm__ volatile (
-        "bkpt 0xab"
+        "mov r2, %[msg]\n"
+        "movs r0, #4\n"
+        "mov r1, r2\n"
+        "bkpt 0xab\n"
         :
-        : "r"(op), "r"(msg)
-        : "memory"
+        : [msg] "r" (s)
+        : "r0", "r1", "r2", "memory"
     );
 }
 

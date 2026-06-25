@@ -22,14 +22,22 @@ extern ZephyrWorkQueue status_work;
 #if defined(QEMU_RUNTIME_PROBE)
 static void qemu_write0(const char *s)
 {
-    register unsigned int op asm("r0") = 0x04;
-    register const char *msg asm("r1") = s;
-
+    /*
+     * ARM semihosting SYS_WRITE0:
+     * r0 = 0x04
+     * r1 = zero-terminated string pointer
+     *
+     * Use explicit register moves.
+     * Do not rely on C/C++ register variables here.
+     */
     asm volatile (
-        "bkpt 0xab"
+        "mov r2, %[msg]\n"
+        "movs r0, #4\n"
+        "mov r1, r2\n"
+        "bkpt 0xab\n"
         :
-        : "r"(op), "r"(msg)
-        : "memory"
+        : [msg] "r" (s)
+        : "r0", "r1", "r2", "memory"
     );
 }
 #else
@@ -51,7 +59,8 @@ int main(void)
     /*
      * QEMU mode:
      * Do not call ConfigStore::get() / set().
-     * Those template methods are inline in the header and link against nvs_read/nvs_write.
+     * Those template methods are inline in the header and require
+     * nvs_read() / nvs_write(), which are intentionally disabled in QEMU mode.
      */
     qemu_write0("MAIN_QEMU_SKIP_NVS_CONFIG\n");
 
