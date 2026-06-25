@@ -49,7 +49,7 @@ jobs:
       - name: Build Zephyr firmware for olimex_stm32_h405
         run: |
           # Build your actual Zephyr firmware for the STM32F405 board.
-          # This validates the real firmware build.
+          # This validates that the real firmware compiles for your board.
           west build -b olimex_stm32_h405 . --pristine
 
           echo ""
@@ -163,9 +163,23 @@ jobs:
           EOF
 
           echo ""
+          echo "===== LOCATE ARM TOOLCHAIN ====="
+
+          ARM_GCC=$(find /opt/toolchains -type f -name arm-zephyr-eabi-gcc | head -n 1)
+          ARM_OBJDUMP=$(find /opt/toolchains -type f -name arm-zephyr-eabi-objdump | head -n 1)
+
+          echo "Using ARM GCC: $ARM_GCC"
+          echo "Using ARM OBJDUMP: $ARM_OBJDUMP"
+
+          if [ -z "$ARM_GCC" ]; then
+            echo "arm-zephyr-eabi-gcc not found under /opt/toolchains"
+            exit 1
+          fi
+
+          echo ""
           echo "===== BUILD BARE-METAL QEMU SMOKE ELF ====="
 
-          arm-zephyr-eabi-gcc \
+          "$ARM_GCC" \
             -mcpu=cortex-m4 \
             -mthumb \
             -nostdlib \
@@ -178,7 +192,13 @@ jobs:
           echo ""
           echo "===== SMOKE ELF CHECK ====="
           ls -lh qemu_h405_smoke.elf
-          arm-zephyr-eabi-objdump -h qemu_h405_smoke.elf || true
+
+          if [ -n "$ARM_OBJDUMP" ]; then
+            "$ARM_OBJDUMP" -h qemu_h405_smoke.elf || true
+          else
+            echo "arm-zephyr-eabi-objdump not found. Skipping objdump."
+          fi
+
           strings qemu_h405_smoke.elf | grep "QEMU_BOOT_MARKER" || true
 
           rm -f qemu_execution_report.txt
