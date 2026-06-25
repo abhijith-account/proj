@@ -107,6 +107,8 @@ jobs:
           rm -f qemu_execution_report.txt
           rm -f qemu_stdout.log
           rm -f qemu_stderr.log
+          rm -f qemu_semihost.log
+          rm -f firmware_console.log
           rm -f qemu_uart0.log
           rm -f qemu_uart1.log
           rm -f qemu_uart2.log
@@ -115,6 +117,14 @@ jobs:
           rm -f qemu_uart5.log
           rm -f qemu_uart6.log
           rm -f qemu_uart7.log
+          rm -f qemu_uart0.raw.log
+          rm -f qemu_uart1.raw.log
+          rm -f qemu_uart2.raw.log
+          rm -f qemu_uart3.raw.log
+          rm -f qemu_uart4.raw.log
+          rm -f qemu_uart5.raw.log
+          rm -f qemu_uart6.raw.log
+          rm -f qemu_uart7.raw.log
 
           set +e
           timeout 60s qemu-system-arm \
@@ -124,30 +134,62 @@ jobs:
             -monitor none \
             -semihosting-config enable=on,target=native \
             -kernel build/zephyr/zephyr.elf \
-            -serial file:qemu_uart0.log \
-            -serial file:qemu_uart1.log \
-            -serial file:qemu_uart2.log \
-            -serial file:qemu_uart3.log \
-            -serial file:qemu_uart4.log \
-            -serial file:qemu_uart5.log \
-            -serial file:qemu_uart6.log \
-            -serial file:qemu_uart7.log \
-            > qemu_stdout.log 2> qemu_stderr.log
+            -serial file:qemu_uart0.raw.log \
+            -serial file:qemu_uart1.raw.log \
+            -serial file:qemu_uart2.raw.log \
+            -serial file:qemu_uart3.raw.log \
+            -serial file:qemu_uart4.raw.log \
+            -serial file:qemu_uart5.raw.log \
+            -serial file:qemu_uart6.raw.log \
+            -serial file:qemu_uart7.raw.log \
+            > qemu_stdout.log 2> qemu_semihost.log
 
           EXIT_CODE=$?
           set -e
+
+          # Keep old stderr filename also.
+          cp qemu_semihost.log qemu_stderr.log || true
+
+          # Firmware console is semihost output in this QEMU-safe build.
+          cp qemu_semihost.log firmware_console.log || true
+
+          # Compatibility alias:
+          # qemu_uart0.log is a mirror of semihost output for easier artifact reading.
+          # qemu_uart0.raw.log remains the actual raw UART capture.
+          cp qemu_semihost.log qemu_uart0.log || true
+
+          # Preserve raw UART captures separately.
+          cp qemu_uart1.raw.log qemu_uart1.log 2>/dev/null || true
+          cp qemu_uart2.raw.log qemu_uart2.log 2>/dev/null || true
+          cp qemu_uart3.raw.log qemu_uart3.log 2>/dev/null || true
+          cp qemu_uart4.raw.log qemu_uart4.log 2>/dev/null || true
+          cp qemu_uart5.raw.log qemu_uart5.log 2>/dev/null || true
+          cp qemu_uart6.raw.log qemu_uart6.log 2>/dev/null || true
+          cp qemu_uart7.raw.log qemu_uart7.log 2>/dev/null || true
 
           {
             echo "===== QEMU STDOUT - YOUR FIRMWARE ====="
             cat qemu_stdout.log || true
             echo ""
 
-            echo "===== QEMU STDERR - YOUR FIRMWARE ====="
+            echo "===== QEMU SEMIHOST / FIRMWARE CONSOLE ====="
+            cat qemu_semihost.log || true
+            echo ""
+
+            echo "===== QEMU STDERR - COPY OF SEMIHOST LOG ====="
             cat qemu_stderr.log || true
             echo ""
 
-            for i in 0 1 2 3 4 5 6 7; do
-              echo "===== UART${i} - YOUR FIRMWARE ====="
+            echo "===== UART0 COMPATIBILITY LOG - SEMIHOST MIRROR ====="
+            cat qemu_uart0.log || true
+            echo ""
+
+            echo "===== UART0 RAW HARDWARE LOG ====="
+            cat qemu_uart0.raw.log || true
+            echo ""
+
+            for i in 1 2 3 4 5 6 7; do
+              echo "===== UART${i} RAW HARDWARE LOG ====="
               cat qemu_uart${i}.log || true
               echo ""
             done
@@ -264,7 +306,10 @@ jobs:
             qemu_execution_report.txt
             qemu_stdout.log
             qemu_stderr.log
+            qemu_semihost.log
+            firmware_console.log
             qemu_uart*.log
+            qemu_uart*.raw.log
             zephyr_initlevels.txt
             build/zephyr/zephyr.map
             build/zephyr/zephyr.dts
