@@ -42,7 +42,11 @@ jobs:
           # Build for QEMU-supported STM32F405 board.
           # QEMU machine: olimex-stm32-h405
           west build -b olimex_stm32_h405 . --pristine
-
+          
+	  echo "===== MUST NOT BUILD THESE FOR QEMU SMOKE ====="
+          grep -E "CONFIG_ENTROPY_GENERATOR|CONFIG_TEST_RANDOM_GENERATOR|CONFIG_GPIO|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_LOG|CONFIG_SEMIHOST" build/zephyr/.config || true
+          echo "===== SHOULD NOT SEE entropy_stm32 IN BUILD ====="
+          grep -R "entropy_stm32" build/zephyr || true
           echo "===== VERIFY BOOT MARKER EXISTS IN IMAGE ====="
           strings build/zephyr/zephyr.elf | grep "QEMU_BOOT_MARKER" || true
 

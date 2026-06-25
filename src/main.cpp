@@ -9,8 +9,7 @@ extern "C" {
 static void qemu_semihost_puts(const char *s)
 {
     while (*s != '\0') {
-        semihost_poll_out(*s);
-        s++;
+        semihost_poll_out(*s++);
     }
 }
 

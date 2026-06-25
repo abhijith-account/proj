@@ -1,21 +1,13 @@
 /* olimex_stm32_h405.overlay */
 
 / {
-    chosen {
-        zephyr,console = &usart2;
-        zephyr,shell-uart = &usart2;
-    };
-
-    aliases {
-        serial0 = &usart2;
-        cdc-acm-uart0 = &usart2;
-    };
+    /*
+     * For semihosting smoke test, no UART console is required.
+     * Keep chosen empty/minimal to avoid UART dependency.
+     */
 };
 
-/*
- * QEMU-safe clock configuration:
- * Do not use HSE/PLL. Use internal HSI directly.
- */
+/* QEMU-safe clock: avoid external HSE/PLL dependency */
 &clk_hsi {
     status = "okay";
 };
@@ -36,19 +28,19 @@
     apb2-prescaler = <1>;
 };
 
-/* USART2 is the default console UART for olimex_stm32_h405 */
-&usart2 {
-    status = "okay";
-    current-speed = <115200>;
-    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
-    pinctrl-names = "default";
-};
-
+/* Disable peripherals not needed for semihost smoke boot */
 &usbotg_fs {
     status = "disabled";
 };
 
-/* Disable QEMU-unreliable peripherals for smoke boot */
+&usart1 {
+    status = "disabled";
+};
+
+&usart2 {
+    status = "disabled";
+};
+
 &i2c1 {
     status = "disabled";
 };
@@ -58,5 +50,9 @@
 };
 
 &iwdg {
+    status = "disabled";
+};
+
+&rng {
     status = "disabled";
 };
