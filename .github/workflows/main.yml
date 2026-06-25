@@ -35,24 +35,48 @@ jobs:
       - name: Install required packages
         run: |
           apt-get update
-          apt-get install -y qemu-system-arm cmake make gcc g++ lcov gcovr libgtest-dev binutils
+          apt-get install -y \
+            qemu-system-arm \
+            cmake \
+            make \
+            gcc \
+            g++ \
+            lcov \
+            gcovr \
+            libgtest-dev \
+            binutils
 
-      - name: Build and run olimex_stm32_h405 in QEMU with semihosting
+      - name: Build olimex_stm32_h405 QEMU smoke image
         run: |
           # Build for QEMU-supported STM32F405 board.
           # QEMU machine: olimex-stm32-h405
           west build -b olimex_stm32_h405 . --pristine
-          
-	  echo "===== MUST NOT BUILD THESE FOR QEMU SMOKE ====="
-          grep -E "CONFIG_ENTROPY_GENERATOR|CONFIG_TEST_RANDOM_GENERATOR|CONFIG_GPIO|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_LOG|CONFIG_SEMIHOST" build/zephyr/.config || true
-          echo "===== SHOULD NOT SEE entropy_stm32 IN BUILD ====="
-          grep -R "entropy_stm32" build/zephyr || true
+
+          echo ""
           echo "===== VERIFY BOOT MARKER EXISTS IN IMAGE ====="
           strings build/zephyr/zephyr.elf | grep "QEMU_BOOT_MARKER" || true
 
-          echo "===== CONFIG CHECK ====="
-          grep -E "CONFIG_SEMIHOST|CONFIG_PRINTK|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG" build/zephyr/.config || true
+          echo ""
+          echo "===== QEMU SMOKE CONFIG CHECK ====="
+          grep -E "CONFIG_SEMIHOST|CONFIG_PRINTK|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG|CONFIG_GPIO|CONFIG_ENTROPY_GENERATOR|CONFIG_TEST_RANDOM_GENERATOR|CONFIG_I2C|CONFIG_SENSOR|CONFIG_WATCHDOG|CONFIG_PM|CONFIG_FLASH|CONFIG_NVS" build/zephyr/.config || true
 
+          echo ""
+          echo "===== GENERATED DTS CHOSEN NODE ====="
+          awk '/chosen {/,/};/' build/zephyr/zephyr.dts || true
+
+          echo ""
+          echo "===== CHECK FOR UNWANTED STM32 DRIVERS IN BUILD ====="
+          echo "--- entropy_stm32 ---"
+          grep -R "entropy_stm32" build/zephyr 2>/dev/null || true
+
+          echo "--- gpio_stm32 ---"
+          grep -R "gpio_stm32" build/zephyr 2>/dev/null || true
+
+          echo "--- uart_stm32 ---"
+          grep -R "uart_stm32" build/zephyr 2>/dev/null || true
+
+      - name: Run olimex_stm32_h405 in QEMU with semihosting
+        run: |
           rm -f qemu_execution_report.txt
           rm -f qemu_stderr.log
           rm -f qemu_semihost.log
@@ -74,9 +98,11 @@ jobs:
             echo "===== QEMU STDERR ====="
             cat qemu_stderr.log || true
             echo ""
+
             echo "===== QEMU SEMIHOST OUTPUT ====="
             cat qemu_semihost.log || true
             echo ""
+
             echo "===== EXIT CODE ====="
             echo "$EXIT_CODE"
           } > qemu_execution_report.txt
@@ -90,7 +116,7 @@ jobs:
 
           if [ "$EXIT_CODE" -eq 124 ]; then
             echo "QEMU reached timeout, but semihost boot marker was not captured."
-            echo "This means firmware did not reach main() or semihosting is not enabled correctly."
+            echo "This means firmware still did not reach main(), or semihosting output is not active early enough."
             exit 1
           elif [ "$EXIT_CODE" -eq 0 ]; then
             echo "QEMU exited normally, but semihost boot marker was not captured."
