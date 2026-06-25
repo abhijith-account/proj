@@ -85,7 +85,8 @@ TEST_F(PowerManagementTestSuite, InitSuccessLogsInfo){
     EXPECT_TRUE(pwr.init());
     std::string output =testing::internal::GetCapturedStdout();
 
-    EXPECT_TRUE(output.find("[INF] Power Manager initialized.Deep Sleep Locked.")!=std::string::npos)<<"Expected successful init log missing! Actual: "<< output;
+    EXPECT_TRUE(output.find("[INF] Power Manager initialized. Deep Sleep Locked.") != std::string::npos)
+    << "Expected successful init log missing! Actual: " << output;
 }
 
 TEST_F(PowerManagementTestSuite,FastForwardsThroughStateTransitions){
