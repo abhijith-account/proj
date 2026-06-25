@@ -14,16 +14,26 @@ extern const device* i2c_hardware;
 const device* rtc_hardware=DEVICE_DT_GET(DT_NODELABEL(rtc));
 PowerManager pwr_manager(rtc_hardware,i2c_hardware);
 
-PowerManager::PowerManager(const device* rtc,const device* i2c):current_mode(PowerMode::ACTIVE),last_activity_time(k_uptime_get_32()),rtc_dev(rtc),i2c_dev(i2c){}
+PowerManager::PowerManager(const device* rtc, const device* i2c)
+    : current_mode(PowerMode::ACTIVE),
+      last_activity_time(0),
+      rtc_dev(rtc),
+      i2c_dev(i2c)
+{
+}
 
-bool PowerManager::init(){
-    if (!device_is_ready(rtc_dev)){
+bool PowerManager::init()
+{
+    last_activity_time = k_uptime_get_32();
+
+    if (!device_is_ready(rtc_dev)) {
         LOG_ERR("RTC device not ready");
         return false;
     }
-    
-    pm_policy_state_lock_get(PM_STATE_SUSPEND_TO_RAM,PM_ALL_SUBSTATES);
-    LOG_INF("Power Manager initialized.Deep Sleep Locked.");
+
+    pm_policy_state_lock_get(PM_STATE_SUSPEND_TO_RAM, PM_ALL_SUBSTATES);
+    LOG_INF("Power Manager initialized. Deep Sleep Locked.");
+
     return true;
 }
 
