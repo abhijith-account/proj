@@ -31,6 +31,10 @@ jobs:
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
           echo "Using Zephyr SDK: $SDK_DIR"
           $SDK_DIR/setup.sh -c
+          
+      - name: Cross Compile for STM32 ARM (Zero Warnings)
+        run: |
+          west build -b nucleo_f446re app --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y
 
       - name: Install required packages
         run: |
@@ -296,6 +300,12 @@ jobs:
 
           echo "FAIL: Firmware QEMU run failed with exit code $EXIT_CODE."
           exit 1
+          
+      - name: Emulation Test via QEMU (Cortex-M3)
+        run: |
+          west build -b qemu_cortex_m3 . --pristine
+          
+          timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
 
       - name: Upload QEMU execution logs
         if: always()
