@@ -46,10 +46,8 @@ jobs:
             libgtest-dev \
             binutils
 
-      - name: Build YOUR firmware for olimex_stm32_h405 with startup probe
+      - name: Build YOUR firmware for olimex_stm32_h405 with granular startup probe
         run: |
-          # This builds your real firmware.
-          # QEMU_RUNTIME_PROBE only adds startup probe markers inside your own firmware.
           west build -b olimex_stm32_h405 . --pristine -- -DQEMU_RUNTIME_PROBE=ON
 
           echo ""
@@ -59,7 +57,7 @@ jobs:
 
           echo ""
           echo "===== VERIFY PROBE / APPLICATION STRINGS EXIST IN YOUR ELF ====="
-          strings build/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1|QEMU_PROBE_PRE_KERNEL_2|QEMU_PROBE_POST_KERNEL|QEMU_PROBE_APPLICATION_INIT|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
+          strings build/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_1_P20|QEMU_PROBE_PRE_KERNEL_1_P30|QEMU_PROBE_PRE_KERNEL_1_P40|QEMU_PROBE_PRE_KERNEL_1_P50|QEMU_PROBE_PRE_KERNEL_1_P60|QEMU_PROBE_PRE_KERNEL_1_P70|QEMU_PROBE_PRE_KERNEL_1_P80|QEMU_PROBE_PRE_KERNEL_1_P90|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
 
           echo ""
           echo "===== CONFIG SNAPSHOT ====="
@@ -125,7 +123,7 @@ jobs:
 
           cat qemu_execution_report.txt
 
-          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1|QEMU_PROBE_PRE_KERNEL_2|QEMU_PROBE_POST_KERNEL|QEMU_PROBE_APPLICATION_INIT|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_1_P20|QEMU_PROBE_PRE_KERNEL_1_P30|QEMU_PROBE_PRE_KERNEL_1_P40|QEMU_PROBE_PRE_KERNEL_1_P50|QEMU_PROBE_PRE_KERNEL_1_P60|QEMU_PROBE_PRE_KERNEL_1_P70|QEMU_PROBE_PRE_KERNEL_1_P80|QEMU_PROBE_PRE_KERNEL_1_P90|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
             echo "Your actual firmware started in QEMU and probe/log markers were captured."
             exit 0
           fi
