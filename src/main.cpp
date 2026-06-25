@@ -2,12 +2,15 @@
 
 #if defined(CONFIG_BOARD_OLIMEX_STM32_H405)
 
+extern "C" {
 #include <zephyr/arch/common/semihost.h>
+}
 
-static void semihost_write_string(const char *s)
+static void qemu_semihost_puts(const char *s)
 {
     while (*s != '\0') {
-        semihost_poll_out(*s++);
+        semihost_poll_out(*s);
+        s++;
     }
 }
 
@@ -16,8 +19,8 @@ int main(void)
     int counter = 0;
 
     while (true) {
-        semihost_write_string("QEMU_BOOT_MARKER ");
-        semihost_poll_out('0' + (counter % 10));
+        qemu_semihost_puts("QEMU_BOOT_MARKER ");
+        semihost_poll_out(static_cast<char>('0' + (counter % 10)));
         semihost_poll_out('\n');
 
         counter++;
