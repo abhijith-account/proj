@@ -11,10 +11,6 @@ if(CONFIG_BOARD_OLIMEX_STM32_H405)
         src/main.cpp
     )
 
-    target_compile_definitions(app PRIVATE
-        QEMU_SMOKE_TEST=1
-    )
-
 else()
 
     target_sources(app PRIVATE

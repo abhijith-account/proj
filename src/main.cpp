@@ -1,13 +1,26 @@
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
 
-#ifdef QEMU_SMOKE_TEST
+#if defined(CONFIG_BOARD_OLIMEX_STM32_H405)
 
-int main(void) {
+#include <zephyr/arch/common/semihost.h>
+
+static void semihost_write_string(const char *s)
+{
+    while (*s != '\0') {
+        semihost_poll_out(*s++);
+    }
+}
+
+int main(void)
+{
     int counter = 0;
 
     while (true) {
-        printk("QEMU_BOOT_MARKER %d\n", counter++);
+        semihost_write_string("QEMU_BOOT_MARKER ");
+        semihost_poll_out('0' + (counter % 10));
+        semihost_poll_out('\n');
+
+        counter++;
         k_msleep(1000);
     }
 
@@ -16,6 +29,7 @@ int main(void) {
 
 #else
 
+#include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>
 #include "RTOS_Command_based_thread_system.h"
 #include "RTOS_Synchronization_Layer.h"
@@ -33,7 +47,8 @@ DeviceContext sys_context;
 
 extern ZephyrWorkQueue status_work;
 
-int main(void) {
+int main(void)
+{
     printk("QEMU_BOOT_MARKER\n");
     LOG_INF("Command-Based RTOS Booting");
 

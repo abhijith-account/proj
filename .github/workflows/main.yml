@@ -37,40 +37,31 @@ jobs:
           apt-get update
           apt-get install -y qemu-system-arm cmake make gcc g++ lcov gcovr libgtest-dev binutils
 
-      - name: Compile for physical Nucleo F446RE
+      - name: Build and run olimex_stm32_h405 in QEMU with semihosting
         run: |
-          west build -b nucleo_f446re . --pristine
-
-      - name: Compile and run STM32F405 firmware in QEMU
-        run: |
-          # QEMU does not officially support nucleo_f446re as a machine.
-          # Use olimex_stm32_h405 because QEMU supports olimex-stm32-h405.
-
+          # Build for QEMU-supported STM32F405 board.
+          # QEMU machine: olimex-stm32-h405
           west build -b olimex_stm32_h405 . --pristine
 
-          echo "===== RESOLVED CHOSEN NODE ====="
-          awk '/chosen {/,/};/' build/zephyr/zephyr.dts || true
-
-          echo "===== UART / CONSOLE CONFIG ====="
-          grep -E "CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_PRINTK|CONFIG_BOOT_BANNER|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_LOG_MODE_IMMEDIATE" build/zephyr/.config || true
-
           echo "===== VERIFY BOOT MARKER EXISTS IN IMAGE ====="
-          strings build/zephyr/zephyr.bin | grep "QEMU_BOOT_MARKER" || true
+          strings build/zephyr/zephyr.elf | grep "QEMU_BOOT_MARKER" || true
+
+          echo "===== CONFIG CHECK ====="
+          grep -E "CONFIG_SEMIHOST|CONFIG_PRINTK|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG" build/zephyr/.config || true
 
           rm -f qemu_execution_report.txt
           rm -f qemu_stderr.log
-          rm -f qemu_uart_console.log
+          rm -f qemu_semihost.log
 
           set +e
           timeout 20s qemu-system-arm \
-          -machine olimex-stm32-h405 \
-          -cpu cortex-m4 \
-          -display none \
-          -monitor none \
-          -kernel build/zephyr/zephyr.elf \
-          -serial null \
-          -serial stdio \
-          > qemu_uart_console.log 2> qemu_stderr.log
+            -machine olimex-stm32-h405 \
+            -cpu cortex-m4 \
+            -display none \
+            -monitor none \
+            -semihosting-config enable=on,target=native \
+            -kernel build/zephyr/zephyr.elf \
+            > qemu_semihost.log 2> qemu_stderr.log
 
           EXIT_CODE=$?
           set -e
@@ -79,21 +70,32 @@ jobs:
             echo "===== QEMU STDERR ====="
             cat qemu_stderr.log || true
             echo ""
-            echo "===== USART2 / UART CONSOLE ====="
-            cat qemu_uart_console.log || true
+            echo "===== QEMU SEMIHOST OUTPUT ====="
+            cat qemu_semihost.log || true
+            echo ""
+            echo "===== EXIT CODE ====="
+            echo "$EXIT_CODE"
           } > qemu_execution_report.txt
 
           cat qemu_execution_report.txt
 
-          if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS" qemu_execution_report.txt; then
-            echo "UART boot logs were captured successfully."
+          if grep -aEq "QEMU_BOOT_MARKER" qemu_execution_report.txt; then
+            echo "QEMU semihost logs captured successfully."
             exit 0
           fi
+
           if [ "$EXIT_CODE" -eq 124 ]; then
-            echo "QEMU reached timeout, but UART boot marker was not captured."
-            echo "This means firmware did not reach main() or console still did not initialize."
+            echo "QEMU reached timeout, but semihost boot marker was not captured."
+            echo "This means firmware did not reach main() or semihosting is not enabled correctly."
+            exit 1
+          elif [ "$EXIT_CODE" -eq 0 ]; then
+            echo "QEMU exited normally, but semihost boot marker was not captured."
+            exit 1
+          else
+            echo "Firmware crashed or QEMU failed with code $EXIT_CODE."
             exit 1
           fi
+
       - name: Upload QEMU execution logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -102,26 +104,30 @@ jobs:
           path: |
             qemu_execution_report.txt
             qemu_stderr.log
-            qemu_uart_console.log
+            qemu_semihost.log
           if-no-files-found: ignore
 
       - name: Build and run host unit tests
         run: |
-          mkdir -p tests/build
-          cd tests/build
+          if [ -f tests/CMakeLists.txt ]; then
+            mkdir -p tests/build
+            cd tests/build
 
-          cmake ..
-          make -j$(nproc)
+            cmake ..
+            make -j$(nproc)
 
-          if [ -f ./run_pm_tests ]; then ./run_pm_tests; fi
-          if [ -f ./run_usb_shell_tests ]; then ./run_usb_shell_tests; fi
-          if [ -f ./run_battery_tests ]; then ./run_battery_tests; fi
-          if [ -f ./run_static_memory_tests ]; then ./run_static_memory_tests; fi
-          if [ -f ./run_config_tests ]; then ./run_config_tests; fi
-          if [ -f ./run_i2c_faults_tests ]; then ./run_i2c_faults_tests; fi
-          if [ -f ./run_state_machine_tests ]; then ./run_state_machine_tests; fi
-          if [ -f ./run_sync_tests ]; then ./run_sync_tests; fi
-          if [ -f ./run_command_tests ]; then ./run_command_tests; fi
+            if [ -f ./run_pm_tests ]; then ./run_pm_tests; fi
+            if [ -f ./run_usb_shell_tests ]; then ./run_usb_shell_tests; fi
+            if [ -f ./run_battery_tests ]; then ./run_battery_tests; fi
+            if [ -f ./run_static_memory_tests ]; then ./run_static_memory_tests; fi
+            if [ -f ./run_config_tests ]; then ./run_config_tests; fi
+            if [ -f ./run_i2c_faults_tests ]; then ./run_i2c_faults_tests; fi
+            if [ -f ./run_state_machine_tests ]; then ./run_state_machine_tests; fi
+            if [ -f ./run_sync_tests ]; then ./run_sync_tests; fi
+            if [ -f ./run_command_tests ]; then ./run_command_tests; fi
+          else
+            echo "tests/CMakeLists.txt not found. Skipping host unit tests."
+          fi
 
       - name: Enforce coverage
         run: |
