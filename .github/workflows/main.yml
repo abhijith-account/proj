@@ -54,18 +54,35 @@ jobs:
           echo "===== YOUR FIRMWARE IMAGE ====="
           ls -lh build/zephyr/zephyr.elf || true
           ls -lh build/zephyr/zephyr.bin || true
+          ls -lh build/zephyr/zephyr.map || true
 
           echo ""
           echo "===== VERIFY PROBE / APPLICATION STRINGS EXIST IN YOUR ELF ====="
-          strings build/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_1_P20|QEMU_PROBE_PRE_KERNEL_1_P30|QEMU_PROBE_PRE_KERNEL_1_P40|QEMU_PROBE_PRE_KERNEL_1_P50|QEMU_PROBE_PRE_KERNEL_1_P60|QEMU_PROBE_PRE_KERNEL_1_P70|QEMU_PROBE_PRE_KERNEL_1_P80|QEMU_PROBE_PRE_KERNEL_1_P90|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
+          strings build/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P1|QEMU_PROBE_PRE_KERNEL_1_P2|QEMU_PROBE_PRE_KERNEL_1_P3|QEMU_PROBE_PRE_KERNEL_1_P4|QEMU_PROBE_PRE_KERNEL_1_P5|QEMU_PROBE_PRE_KERNEL_1_P6|QEMU_PROBE_PRE_KERNEL_1_P7|QEMU_PROBE_PRE_KERNEL_1_P8|QEMU_PROBE_PRE_KERNEL_1_P9|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
 
           echo ""
           echo "===== CONFIG SNAPSHOT ====="
-          grep -E "CONFIG_BOARD|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_PRINTK|CONFIG_SHELL|CONFIG_USB|CONFIG_I2C|CONFIG_WATCHDOG|CONFIG_NVS|CONFIG_PM|CONFIG_FLASH|CONFIG_COUNTER|CONFIG_SEMIHOST" build/zephyr/.config || true
+          grep -E "CONFIG_BOARD|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_PRINTK|CONFIG_SHELL|CONFIG_USB|CONFIG_I2C|CONFIG_WATCHDOG|CONFIG_NVS|CONFIG_PM|CONFIG_FLASH|CONFIG_COUNTER|CONFIG_SEMIHOST|CONFIG_CLOCK_CONTROL|CONFIG_GPIO|CONFIG_ENTROPY|CONFIG_RESET|CONFIG_SYS_CLOCK|CONFIG_TICKLESS" build/zephyr/.config || true
 
           echo ""
           echo "===== DEVICETREE CHOSEN NODE ====="
           awk '/chosen {/,/};/' build/zephyr/zephyr.dts || true
+
+          echo ""
+          echo "===== DEVICETREE ENABLED EARLY DEVICES ====="
+          grep -nE "status = \"okay\"|rcc|clk|clock|gpio|usart|uart|i2c|rtc|iwdg|flash|entropy|rng" build/zephyr/zephyr.dts || true
+
+          echo ""
+          echo "===== ZEPHYR INIT ORDER SYMBOLS ====="
+          NM_TOOL=$(find /opt/toolchains -name arm-zephyr-eabi-nm | head -n 1)
+          echo "Using nm: ${NM_TOOL}"
+          if [ -n "${NM_TOOL}" ]; then
+            "${NM_TOOL}" -n build/zephyr/zephyr.elf | grep -E "init|qemu_probe|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" || true
+          fi
+
+          echo ""
+          echo "===== LINKER MAP INIT / DRIVER SECTIONS ====="
+          grep -nE "qemu_probe|PRE_KERNEL|POST_KERNEL|APPLICATION|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" build/zephyr/zephyr.map || true
 
       - name: Run YOUR firmware in QEMU manually
         run: |
@@ -123,23 +140,87 @@ jobs:
 
           cat qemu_execution_report.txt
 
-          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_1_P20|QEMU_PROBE_PRE_KERNEL_1_P30|QEMU_PROBE_PRE_KERNEL_1_P40|QEMU_PROBE_PRE_KERNEL_1_P50|QEMU_PROBE_PRE_KERNEL_1_P60|QEMU_PROBE_PRE_KERNEL_1_P70|QEMU_PROBE_PRE_KERNEL_1_P80|QEMU_PROBE_PRE_KERNEL_1_P90|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
-            echo "Your actual firmware started in QEMU and probe/log markers were captured."
+          echo ""
+          echo "===== QEMU RESULT CLASSIFICATION ====="
+
+          if grep -aEq "QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+            echo "PASS: Your actual application main() ran in QEMU."
             exit 0
           fi
 
+          if grep -aEq "QEMU_PROBE_APPLICATION_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_PRE_KERNEL_2_P0" qemu_execution_report.txt; then
+            echo "PASS: Your actual firmware reached late Zephyr init stages, but main() was not confirmed."
+            exit 0
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P10" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 10 but did not reach PRE_KERNEL_2."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P9" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 9 but stopped before priority 10."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P8" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 8 but stopped before priority 9."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P7" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 7 but stopped before priority 8."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P6" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 6 but stopped before priority 7."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P5" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 5 but stopped before priority 6."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P4" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 4 but stopped before priority 5."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P3" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 3 but stopped before priority 4."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P2" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 2 but stopped before priority 3."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P1" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 1 but stopped before priority 2."
+            exit 1
+          fi
+
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1_P0" qemu_execution_report.txt; then
+            echo "FAIL: Firmware reached PRE_KERNEL_1 priority 0 only."
+            echo "Likely hang is another PRE_KERNEL_1 priority 0 initializer after qemu_probe_pre_kernel_1_p0."
+            echo "Check the linker map / init symbols printed in the previous build step."
+            exit 1
+          fi
+
           if [ "$EXIT_CODE" -eq 124 ]; then
-            echo "Your actual firmware was launched in QEMU and ran until timeout, but no probe/application marker was captured."
-            echo "This means the firmware is hanging before the earliest QEMU startup probe, or QEMU cannot expose semihost/UART output for this firmware."
+            echo "FAIL: Your actual firmware was launched in QEMU but no probe/application marker was captured."
             exit 1
           fi
 
           if [ "$EXIT_CODE" -eq 0 ]; then
-            echo "QEMU exited normally, but no firmware marker was captured."
+            echo "FAIL: QEMU exited normally, but no firmware marker was captured."
             exit 1
           fi
 
-          echo "Your firmware QEMU run failed with exit code $EXIT_CODE."
+          echo "FAIL: Your firmware QEMU run failed with exit code $EXIT_CODE."
           exit 1
 
       - name: Upload QEMU execution logs
@@ -152,6 +233,9 @@ jobs:
             qemu_stdout.log
             qemu_stderr.log
             qemu_uart*.log
+            build/zephyr/zephyr.map
+            build/zephyr/zephyr.dts
+            build/zephyr/.config
           if-no-files-found: ignore
 
       - name: Build and run host unit tests
