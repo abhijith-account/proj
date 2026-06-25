@@ -11,7 +11,6 @@ target_sources(app PRIVATE
     src/main.cpp
     src/RTOS_Command_based_thread_system.cpp
     src/RTOS_Synchronization_Layer.cpp
-    src/Static_Memory+MISRA_Compliance_Layer.cpp
 )
 
 if(QEMU_RUNTIME_PROBE)
@@ -25,6 +24,7 @@ if(QEMU_RUNTIME_PROBE)
         src/Smart_Battery_System_QEMU_Stub.cpp
         src/USB_CDC_Virtual_COM_Shell_Interface_QEMU_Stub.cpp
         src/Fault_Tolerant_I2C_Communication_Layer_QEMU_Stub.cpp
+        src/Static_Memory_QEMU_Stub.cpp
     )
 else()
     target_sources(app PRIVATE
@@ -33,6 +33,7 @@ else()
         src/Persistent_Configuration_System.cpp
         src/Power_Management_System.cpp
         src/Smart_Battery_System.cpp
+        src/Static_Memory+MISRA_Compliance_Layer.cpp
         src/USB_CDC_Virtual_COM_Shell_Interface.cpp
     )
 endif()
