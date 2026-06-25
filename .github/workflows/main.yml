@@ -46,7 +46,7 @@ jobs:
             libgtest-dev \
             binutils
 
-      - name: Build your firmware for olimex_stm32_h405
+      - name: Build YOUR firmware for olimex_stm32_h405
         run: |
           west build -b olimex_stm32_h405 . --pristine
 
@@ -56,8 +56,8 @@ jobs:
           ls -lh build/zephyr/zephyr.bin || true
 
           echo ""
-          echo "===== VERIFY YOUR MAIN MARKER EXISTS ====="
-          strings build/zephyr/zephyr.elf | grep -E "QEMU_BOOT_MARKER|Command-Based RTOS Booting|MAIN_OS|SIM_I2C" || true
+          echo "===== VERIFY YOUR APPLICATION STRINGS EXIST ====="
+          strings build/zephyr/zephyr.elf | grep -E "QEMU_BOOT_MARKER|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
 
           echo ""
           echo "===== CONFIG SNAPSHOT ====="
@@ -67,14 +67,37 @@ jobs:
           echo "===== DEVICETREE CHOSEN NODE ====="
           awk '/chosen {/,/};/' build/zephyr/zephyr.dts || true
 
-      - name: Run your firmware in QEMU using Zephyr runner
+      - name: Run YOUR firmware in QEMU manually
         run: |
           rm -f qemu_execution_report.txt
-          rm -f qemu_stdout.log
           rm -f qemu_stderr.log
+          rm -f qemu_uart0.log
+          rm -f qemu_uart1.log
+          rm -f qemu_uart2.log
+          rm -f qemu_uart3.log
+          rm -f qemu_uart4.log
+          rm -f qemu_uart5.log
+          rm -f qemu_uart6.log
+          rm -f qemu_uart7.log
 
           set +e
-          timeout 60s west build -t run > qemu_stdout.log 2> qemu_stderr.log
+          timeout 60s qemu-system-arm \
+            -machine olimex-stm32-h405 \
+            -cpu cortex-m4 \
+            -display none \
+            -monitor none \
+            -semihosting-config enable=on,target=native \
+            -kernel build/zephyr/zephyr.elf \
+            -serial file:qemu_uart0.log \
+            -serial file:qemu_uart1.log \
+            -serial file:qemu_uart2.log \
+            -serial file:qemu_uart3.log \
+            -serial file:qemu_uart4.log \
+            -serial file:qemu_uart5.log \
+            -serial file:qemu_uart6.log \
+            -serial file:qemu_uart7.log \
+            > qemu_stdout.log 2> qemu_stderr.log
+
           EXIT_CODE=$?
           set -e
 
@@ -86,6 +109,12 @@ jobs:
             echo "===== QEMU STDERR - YOUR FIRMWARE ====="
             cat qemu_stderr.log || true
             echo ""
+
+            for i in 0 1 2 3 4 5 6 7; do
+              echo "===== UART${i} - YOUR FIRMWARE ====="
+              cat qemu_uart${i}.log || true
+              echo ""
+            done
 
             echo "===== EXIT CODE ====="
             echo "$EXIT_CODE"
@@ -99,8 +128,13 @@ jobs:
           fi
 
           if [ "$EXIT_CODE" -eq 124 ]; then
-            echo "Your firmware was started in QEMU and reached timeout, but no application log was captured."
-            echo "This means your firmware is still hanging before main() or console output is not mapped by the board runner."
+            echo "Your firmware was launched in QEMU and ran until timeout, but no application log was captured."
+            echo "This means your actual firmware is not reaching main(), or the console output is not available under olimex-stm32-h405 QEMU."
+            exit 1
+          fi
+
+          if [ "$EXIT_CODE" -eq 0 ]; then
+            echo "QEMU exited normally, but no firmware log marker was captured."
             exit 1
           fi
 
@@ -116,6 +150,7 @@ jobs:
             qemu_execution_report.txt
             qemu_stdout.log
             qemu_stderr.log
+            qemu_uart*.log
           if-no-files-found: ignore
 
       - name: Build and run host unit tests
