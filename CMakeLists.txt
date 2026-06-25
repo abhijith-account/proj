@@ -3,11 +3,11 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(medical_firmware)
 
-option(QEMU_RUNTIME_PROBE "Enable QEMU semihost marker inside real firmware" OFF)
+option(QEMU_RUNTIME_PROBE "Enable QEMU runtime probe markers" OFF)
 
 target_include_directories(app PRIVATE include)
 
-target_sources(app PRIVATE 
+target_sources(app PRIVATE
     src/main.cpp
     src/Device_State_Machine+Watchdog.cpp
     src/Fault_Tolerant_I2C_Communication_Layer.cpp
@@ -22,12 +22,13 @@ target_sources(app PRIVATE
 
 if(QEMU_RUNTIME_PROBE)
     target_compile_definitions(app PRIVATE QEMU_RUNTIME_PROBE=1)
+    target_sources(app PRIVATE src/QEMU_Startup_Probe.c)
 endif()
 
-target_compile_options(app PRIVATE 
-    -Wall 
-    -Wextra 
-    -Werror 
+target_compile_options(app PRIVATE
+    -Wall
+    -Wextra
+    -Werror
     -Wno-pedantic
     -Wno-variadic-macros
     -Wno-vla

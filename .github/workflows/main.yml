@@ -46,10 +46,10 @@ jobs:
             libgtest-dev \
             binutils
 
-      - name: Build YOUR firmware for olimex_stm32_h405
+      - name: Build YOUR firmware for olimex_stm32_h405 with startup probe
         run: |
-          # Build your actual firmware.
-          # QEMU_RUNTIME_PROBE only enables extra debug markers inside your real main.cpp.
+          # This builds your real firmware.
+          # QEMU_RUNTIME_PROBE only adds startup probe markers inside your own firmware.
           west build -b olimex_stm32_h405 . --pristine -- -DQEMU_RUNTIME_PROBE=ON
 
           echo ""
@@ -58,8 +58,8 @@ jobs:
           ls -lh build/zephyr/zephyr.bin || true
 
           echo ""
-          echo "===== VERIFY YOUR APPLICATION STRINGS EXIST ====="
-          strings build/zephyr/zephyr.elf | grep -E "QEMU_BOOT_MARKER|QEMU_BOOT_MARKER_ACTUAL_MAIN|MAIN_AFTER_LOG_INF|MAIN_BEFORE_CONFIG_INIT|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
+          echo "===== VERIFY PROBE / APPLICATION STRINGS EXIST IN YOUR ELF ====="
+          strings build/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1|QEMU_PROBE_PRE_KERNEL_2|QEMU_PROBE_POST_KERNEL|QEMU_PROBE_APPLICATION_INIT|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
 
           echo ""
           echo "===== CONFIG SNAPSHOT ====="
@@ -125,14 +125,14 @@ jobs:
 
           cat qemu_execution_report.txt
 
-          if grep -aEq "QEMU_BOOT_MARKER_ACTUAL_MAIN|MAIN_AFTER_LOG_INF|MAIN_BEFORE_CONFIG_INIT|MAIN_AFTER_CONFIG_INIT|MAIN_AFTER_STATE_RUNNING|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
-            echo "Your actual firmware ran in QEMU and logs/markers were captured."
+          if grep -aEq "QEMU_PROBE_PRE_KERNEL_1|QEMU_PROBE_PRE_KERNEL_2|QEMU_PROBE_POST_KERNEL|QEMU_PROBE_APPLICATION_INIT|QEMU_BOOT_MARKER_ACTUAL_MAIN|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+            echo "Your actual firmware started in QEMU and probe/log markers were captured."
             exit 0
           fi
 
           if [ "$EXIT_CODE" -eq 124 ]; then
-            echo "Your actual firmware was launched in QEMU and ran until timeout, but no firmware marker was captured."
-            echo "This means the firmware is hanging before main(), or QEMU cannot expose the board console for this firmware."
+            echo "Your actual firmware was launched in QEMU and ran until timeout, but no probe/application marker was captured."
+            echo "This means the firmware is hanging before the earliest QEMU startup probe, or QEMU cannot expose semihost/UART output for this firmware."
             exit 1
           fi
 
