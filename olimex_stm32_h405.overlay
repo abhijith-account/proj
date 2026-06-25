@@ -88,3 +88,16 @@
         };
     };
 };
+
+/*
+ * QEMU mode:
+ * Disable STM32 EXTI and RNG/entropy nodes because they depend on
+ * stm32_clock_control_init / RCC, which hangs under olimex-stm32-h405 QEMU.
+ */
+&exti {
+    status = "disabled";
+};
+
+&rng {
+    status = "disabled";
+};

@@ -4,13 +4,14 @@
 
 #include "RTOS_Command_based_thread_system.h"
 #include "RTOS_Synchronization_Layer.h"
-#include <new>
 #include "Device_State_Machine+Watchdog.h"
 #include "Smart_Battery_System.h"
 #include "Persistent_Configuration_System.h"
 #include "Static_Memory+MISRA_Compliance_Layer.h"
-#include <zephyr/debug/thread_analyzer.h>
 #include "Power_Management_System.h"
+
+#include <zephyr/debug/thread_analyzer.h>
+#include <new>
 
 LOG_MODULE_REGISTER(MAIN_OS, LOG_LEVEL_INF);
 
@@ -18,15 +19,10 @@ DeviceContext sys_context;
 
 extern ZephyrWorkQueue status_work;
 
-/*
- * QEMU semihost marker for CI only.
- * This does not use Zephyr semihost_poll_out(), so there is no linker issue.
- * It prints through QEMU when the workflow passes -semihosting-config enable=on,target=native.
- */
 #if defined(QEMU_RUNTIME_PROBE)
 static void qemu_write0(const char *s)
 {
-    register int op asm("r0") = 0x04;
+    register unsigned int op asm("r0") = 0x04;
     register const char *msg asm("r1") = s;
 
     asm volatile (
@@ -50,14 +46,21 @@ int main(void)
     LOG_INF("Command-Based RTOS Booting");
     qemu_write0("MAIN_AFTER_LOG_INF\n");
 
+#if defined(QEMU_RUNTIME_PROBE)
+
+    /*
+     * QEMU mode:
+     * Do not call ConfigStore::get() / set().
+     * Those template methods are inline in the header and link against nvs_read/nvs_write.
+     */
+    qemu_write0("MAIN_QEMU_SKIP_NVS_CONFIG\n");
+
+#else
+
     ConfigStore& config = ConfigStore::getInstance();
-    qemu_write0("MAIN_BEFORE_CONFIG_INIT\n");
 
     if (config.init()) {
-        qemu_write0("MAIN_AFTER_CONFIG_INIT\n");
-
         config.validateEndurance(ConfigKey::ALARM_THRESHOLD);
-        qemu_write0("MAIN_AFTER_ENDURANCE_TEST\n");
 
         uint16_t infusion_rate = 0;
 
@@ -68,6 +71,8 @@ int main(void)
             LOG_INF("Loaded Infusion Rate from NVS: %u mL/hr", infusion_rate);
         }
     }
+
+#endif
 
     sys_context.requestTransition(SystemState::RUNNING);
     qemu_write0("MAIN_AFTER_STATE_RUNNING\n");
