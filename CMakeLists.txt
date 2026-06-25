@@ -12,7 +12,6 @@ target_sources(app PRIVATE
     src/Device_State_Machine+Watchdog.cpp
     src/Fault_Tolerant_I2C_Communication_Layer.cpp
     src/Persistent_Configuration_System.cpp
-    src/Power_Management_System.cpp
     src/RTOS_Command_based_thread_system.cpp
     src/RTOS_Synchronization_Layer.cpp
     src/Smart_Battery_System.cpp
@@ -22,7 +21,14 @@ target_sources(app PRIVATE
 
 if(QEMU_RUNTIME_PROBE)
     target_compile_definitions(app PRIVATE QEMU_RUNTIME_PROBE=1)
-    target_sources(app PRIVATE src/QEMU_Startup_Probe.c)
+    target_sources(app PRIVATE
+        src/QEMU_Startup_Probe.c
+        src/Power_Management_System_QEMU_Stub.cpp
+    )
+else()
+    target_sources(app PRIVATE
+        src/Power_Management_System.cpp
+    )
 endif()
 
 target_compile_options(app PRIVATE
