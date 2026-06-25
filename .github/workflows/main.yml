@@ -48,7 +48,9 @@ jobs:
 
       - name: Build YOUR firmware for olimex_stm32_h405
         run: |
-          west build -b olimex_stm32_h405 . --pristine
+          # Build your actual firmware.
+          # QEMU_RUNTIME_PROBE only enables extra debug markers inside your real main.cpp.
+          west build -b olimex_stm32_h405 . --pristine -- -DQEMU_RUNTIME_PROBE=ON
 
           echo ""
           echo "===== YOUR FIRMWARE IMAGE ====="
@@ -57,7 +59,7 @@ jobs:
 
           echo ""
           echo "===== VERIFY YOUR APPLICATION STRINGS EXIST ====="
-          strings build/zephyr/zephyr.elf | grep -E "QEMU_BOOT_MARKER|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
+          strings build/zephyr/zephyr.elf | grep -E "QEMU_BOOT_MARKER|QEMU_BOOT_MARKER_ACTUAL_MAIN|MAIN_AFTER_LOG_INF|MAIN_BEFORE_CONFIG_INIT|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" || true
 
           echo ""
           echo "===== CONFIG SNAPSHOT ====="
@@ -70,6 +72,7 @@ jobs:
       - name: Run YOUR firmware in QEMU manually
         run: |
           rm -f qemu_execution_report.txt
+          rm -f qemu_stdout.log
           rm -f qemu_stderr.log
           rm -f qemu_uart0.log
           rm -f qemu_uart1.log
@@ -122,19 +125,19 @@ jobs:
 
           cat qemu_execution_report.txt
 
-          if grep -aEq "QEMU_BOOT_MARKER|Booting Zephyr|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
-            echo "Your firmware ran in QEMU and logs were captured."
+          if grep -aEq "QEMU_BOOT_MARKER_ACTUAL_MAIN|MAIN_AFTER_LOG_INF|MAIN_BEFORE_CONFIG_INIT|MAIN_AFTER_CONFIG_INIT|MAIN_AFTER_STATE_RUNNING|QEMU_BOOT_MARKER_PRINTK|Command-Based RTOS Booting|MAIN_OS|SIM_I2C|Display Consumer" qemu_execution_report.txt; then
+            echo "Your actual firmware ran in QEMU and logs/markers were captured."
             exit 0
           fi
 
           if [ "$EXIT_CODE" -eq 124 ]; then
-            echo "Your firmware was launched in QEMU and ran until timeout, but no application log was captured."
-            echo "This means your actual firmware is not reaching main(), or the console output is not available under olimex-stm32-h405 QEMU."
+            echo "Your actual firmware was launched in QEMU and ran until timeout, but no firmware marker was captured."
+            echo "This means the firmware is hanging before main(), or QEMU cannot expose the board console for this firmware."
             exit 1
           fi
 
           if [ "$EXIT_CODE" -eq 0 ]; then
-            echo "QEMU exited normally, but no firmware log marker was captured."
+            echo "QEMU exited normally, but no firmware marker was captured."
             exit 1
           fi
 
