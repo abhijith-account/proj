@@ -109,7 +109,27 @@ jobs:
 
       - name: Run YOUR firmware in QEMU manually
         run: |
-          rm -f qemu_execution_report.txt qemu_stdout.log qemu_stderr.log qemu_semihost.log firmware_console.log qemu_uart*.log qemu_uart*.raw.log
+          rm -f qemu_execution_report.txt
+          rm -f qemu_stdout.log
+          rm -f qemu_stderr.log
+          rm -f qemu_semihost.log
+          rm -f firmware_console.log
+          rm -f qemu_uart0.log
+          rm -f qemu_uart1.log
+          rm -f qemu_uart2.log
+          rm -f qemu_uart3.log
+          rm -f qemu_uart4.log
+          rm -f qemu_uart5.log
+          rm -f qemu_uart6.log
+          rm -f qemu_uart7.log
+          rm -f qemu_uart0.raw.log
+          rm -f qemu_uart1.raw.log
+          rm -f qemu_uart2.raw.log
+          rm -f qemu_uart3.raw.log
+          rm -f qemu_uart4.raw.log
+          rm -f qemu_uart5.raw.log
+          rm -f qemu_uart6.raw.log
+          rm -f qemu_uart7.raw.log
 
           set +e
           timeout 60s qemu-system-arm \
@@ -134,14 +154,23 @@ jobs:
 
           # Keep old stderr filename also.
           cp qemu_semihost.log qemu_stderr.log || true
+
           # Firmware console is semihost output in this QEMU-safe build.
           cp qemu_semihost.log firmware_console.log || true
+
+          # Compatibility alias:
+          # qemu_uart0.log is a mirror of semihost output for easier artifact reading.
+          # qemu_uart0.raw.log remains the actual raw UART capture.
           cp qemu_semihost.log qemu_uart0.log || true
 
           # Preserve raw UART captures separately.
-          for i in 1 2 3 4 5 6 7; do
-            cp qemu_uart${i}.raw.log qemu_uart${i}.log 2>/dev/null || true
-          done
+          cp qemu_uart1.raw.log qemu_uart1.log 2>/dev/null || true
+          cp qemu_uart2.raw.log qemu_uart2.log 2>/dev/null || true
+          cp qemu_uart3.raw.log qemu_uart3.log 2>/dev/null || true
+          cp qemu_uart4.raw.log qemu_uart4.log 2>/dev/null || true
+          cp qemu_uart5.raw.log qemu_uart5.log 2>/dev/null || true
+          cp qemu_uart6.raw.log qemu_uart6.log 2>/dev/null || true
+          cp qemu_uart7.raw.log qemu_uart7.log 2>/dev/null || true
 
           {
             echo "===== QEMU STDOUT - YOUR FIRMWARE ====="
@@ -181,6 +210,7 @@ jobs:
 
           if grep -aEq "Unsupported SemiHosting|dumped core|Aborted" qemu_execution_report.txt; then
             echo "FAIL: QEMU aborted due to unsupported semihosting call."
+            echo "This means a semihosting BKPT was executed with an invalid r0 operation code."
             exit 1
           fi
 
@@ -194,6 +224,7 @@ jobs:
               echo "PASS: Your actual application main() ran in QEMU."
               exit 0
             fi
+
             echo "FAIL: Application marker was seen, but QEMU exited abnormally with code $EXIT_CODE."
             exit 1
           fi
@@ -269,8 +300,9 @@ jobs:
           fi
 
           echo "FAIL: Firmware QEMU run failed with exit code $EXIT_CODE."
-          exit 1
-              
+          exit 1    
+          
+          
       - name: Emulation Test via QEMU (Cortex-M3)
         run: |
           west build -b qemu_cortex_m3 . --pristine
