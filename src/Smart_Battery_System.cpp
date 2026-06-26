@@ -114,4 +114,4 @@ void battery_monitor_thread(void){
     }while(THREAD_LOOP_CONDITION);
 }
 
-K_THREAD_DEFINE(battery_tid,512,battery_monitor_thread,NULL,NULL,NULL,10,0,0);
+K_THREAD_DEFINE(battery_tid,1024,battery_monitor_thread,NULL,NULL,NULL,10,0,0);
