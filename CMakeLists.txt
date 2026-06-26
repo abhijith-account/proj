@@ -18,7 +18,6 @@ if(QEMU_RUNTIME_PROBE)
     target_compile_definitions(app PRIVATE 
         QEMU_RUNTIME_PROBE=1
         CONFIG_QEMU_CORTEX_M3=1
-        CONFIG_QEMU_CORTEX_M4=1 
     )
 
     target_sources(app PRIVATE
