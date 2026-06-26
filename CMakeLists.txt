@@ -17,7 +17,7 @@ if(QEMU_RUNTIME_PROBE)
     # This block now automatically defines the macros your C++ code expects
     target_compile_definitions(app PRIVATE 
         QEMU_RUNTIME_PROBE=1
-        CONFIG_QEMU_CORTEX_M3=1
+        CONFIG_BOARD_QEMU_CORTEX_M3=1
     )
 
     target_sources(app PRIVATE
