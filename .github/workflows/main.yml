@@ -16,7 +16,6 @@ on:
 jobs:
   build-test-qemu:
     runs-on: ubuntu-latest
-    # Pinned to the official CI container version for Zephyr 3.7.x LTS
     container: zephyrprojectrtos/ci:latest
 
     steps:
@@ -32,10 +31,6 @@ jobs:
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
           echo "Using Zephyr SDK: $SDK_DIR"
           $SDK_DIR/setup.sh -c
-          
-      - name: Cross Compile for STM32 ARM (Zero Warnings)
-        run: |
-          west build -b nucleo_f446re . --pristine 
 
       - name: Install required packages
         run: |
@@ -51,52 +46,67 @@ jobs:
             libgtest-dev \
             binutils
 
+      - name: Cross Compile for STM32 ARM - nucleo_f446re
+        run: |
+          west build -b nucleo_f446re . \
+            --build-dir build_nucleo \
+            --pristine
+
+          echo ""
+          echo "===== NUCLEO BUILD IMAGE ====="
+          ls -lh build_nucleo/zephyr/zephyr.elf || true
+          ls -lh build_nucleo/zephyr/zephyr.bin || true
+          ls -lh build_nucleo/zephyr/zephyr.map || true
+
       - name: Build YOUR firmware for olimex_stm32_h405 with QEMU stubs
         run: |
-          west build -b olimex_stm32_h405 . --pristine -- -DQEMU_RUNTIME_PROBE=ON
+          west build -b olimex_stm32_h405 . \
+            --build-dir build_qemu_olimex \
+            --pristine -- \
+            -DQEMU_RUNTIME_PROBE=ON
 
           echo ""
-          echo "===== YOUR FIRMWARE IMAGE ====="
-          ls -lh build/zephyr/zephyr.elf || true
-          ls -lh build/zephyr/zephyr.bin || true
-          ls -lh build/zephyr/zephyr.map || true
+          echo "===== YOUR OLIMEX QEMU FIRMWARE IMAGE ====="
+          ls -lh build_qemu_olimex/zephyr/zephyr.elf || true
+          ls -lh build_qemu_olimex/zephyr/zephyr.bin || true
+          ls -lh build_qemu_olimex/zephyr/zephyr.map || true
 
           echo ""
-          echo "===== VERIFY PROBE / APPLICATION STRINGS EXIST IN YOUR ELF ====="
-          strings build/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P1|QEMU_PROBE_PRE_KERNEL_1_P2|QEMU_PROBE_PRE_KERNEL_1_P3|QEMU_PROBE_PRE_KERNEL_1_P4|QEMU_PROBE_PRE_KERNEL_1_P5|QEMU_PROBE_PRE_KERNEL_1_P6|QEMU_PROBE_PRE_KERNEL_1_P7|QEMU_PROBE_PRE_KERNEL_1_P8|QEMU_PROBE_PRE_KERNEL_1_P9|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|MAIN_AFTER_LOG_INF|MAIN_QEMU_SKIP_NVS_CONFIG|MAIN_AFTER_STATE_RUNNING|MAIN_AFTER_STATUS_WORK_SCHEDULE" || true
+          echo "===== VERIFY PROBE / APPLICATION STRINGS EXIST IN YOUR OLIMEX ELF ====="
+          strings build_qemu_olimex/zephyr/zephyr.elf | grep -E "QEMU_PROBE_PRE_KERNEL_1_P0|QEMU_PROBE_PRE_KERNEL_1_P1|QEMU_PROBE_PRE_KERNEL_1_P2|QEMU_PROBE_PRE_KERNEL_1_P3|QEMU_PROBE_PRE_KERNEL_1_P4|QEMU_PROBE_PRE_KERNEL_1_P5|QEMU_PROBE_PRE_KERNEL_1_P6|QEMU_PROBE_PRE_KERNEL_1_P7|QEMU_PROBE_PRE_KERNEL_1_P8|QEMU_PROBE_PRE_KERNEL_1_P9|QEMU_PROBE_PRE_KERNEL_1_P10|QEMU_PROBE_PRE_KERNEL_2_P0|QEMU_PROBE_POST_KERNEL_P0|QEMU_PROBE_APPLICATION_P0|QEMU_BOOT_MARKER_ACTUAL_MAIN|MAIN_AFTER_LOG_INF|MAIN_QEMU_SKIP_NVS_CONFIG|MAIN_AFTER_STATE_RUNNING|MAIN_AFTER_STATUS_WORK_SCHEDULE" || true
 
           echo ""
-          echo "===== CONFIG SNAPSHOT ====="
-          grep -E "CONFIG_BOARD|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_PRINTK|CONFIG_SHELL|CONFIG_USB|CONFIG_I2C|CONFIG_WATCHDOG|CONFIG_NVS|CONFIG_PM|CONFIG_FLASH|CONFIG_COUNTER|CONFIG_SEMIHOST|CONFIG_CLOCK_CONTROL|CONFIG_GPIO|CONFIG_ENTROPY|CONFIG_RANDOM|CONFIG_THREAD_ANALYZER" build/zephyr/.config || true
+          echo "===== OLIMEX CONFIG SNAPSHOT ====="
+          grep -E "CONFIG_BOARD|CONFIG_SERIAL|CONFIG_CONSOLE|CONFIG_UART_CONSOLE|CONFIG_LOG|CONFIG_LOG_BACKEND_UART|CONFIG_PRINTK|CONFIG_SHELL|CONFIG_USB|CONFIG_I2C|CONFIG_WATCHDOG|CONFIG_NVS|CONFIG_PM|CONFIG_FLASH|CONFIG_COUNTER|CONFIG_SEMIHOST|CONFIG_CLOCK_CONTROL|CONFIG_GPIO|CONFIG_ENTROPY|CONFIG_RANDOM|CONFIG_THREAD_ANALYZER" build_qemu_olimex/zephyr/.config || true
 
           echo ""
-          echo "===== DEVICETREE CHOSEN NODE ====="
-          awk '/chosen {/,/};/' build/zephyr/zephyr.dts || true
+          echo "===== OLIMEX DEVICETREE CHOSEN NODE ====="
+          awk '/chosen {/,/};/' build_qemu_olimex/zephyr/zephyr.dts || true
 
           echo ""
-          echo "===== DEVICETREE ENABLED EARLY DEVICES ====="
-          grep -nE "status = \"okay\"|rcc|clk|clock|gpio|usart|uart|i2c|rtc|iwdg|flash|entropy|rng|exti" build/zephyr/zephyr.dts || true
+          echo "===== OLIMEX DEVICETREE ENABLED EARLY DEVICES ====="
+          grep -nE "status = \"okay\"|rcc|clk|clock|gpio|usart|uart|i2c|rtc|iwdg|flash|entropy|rng|exti" build_qemu_olimex/zephyr/zephyr.dts || true
 
           echo ""
-          echo "===== ZEPHYR INIT ORDER SYMBOLS ====="
+          echo "===== OLIMEX ZEPHYR INIT ORDER SYMBOLS ====="
           NM_TOOL=$(find /opt/toolchains -name arm-zephyr-eabi-nm | head -n 1)
           echo "Using nm: ${NM_TOOL}"
           if [ -n "${NM_TOOL}" ]; then
-            "${NM_TOOL}" -n build/zephyr/zephyr.elf | grep -E "init|qemu_probe|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" || true
+            "${NM_TOOL}" -n build_qemu_olimex/zephyr/zephyr.elf | grep -E "init|qemu_probe|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" || true
           fi
 
           echo ""
-          echo "===== LINKER MAP INIT / DRIVER SECTIONS ====="
-          grep -nE "qemu_probe|PRE_KERNEL|POST_KERNEL|APPLICATION|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" build/zephyr/zephyr.map || true
+          echo "===== OLIMEX LINKER MAP INIT / DRIVER SECTIONS ====="
+          grep -nE "qemu_probe|PRE_KERNEL|POST_KERNEL|APPLICATION|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" build_qemu_olimex/zephyr/zephyr.map || true
 
-      - name: Generate Zephyr init-level report
+      - name: Generate Zephyr init-level report for olimex_stm32_h405
         run: |
           rm -f zephyr_initlevels.txt
 
-          west build -t initlevels > zephyr_initlevels.txt 2>&1 || true
+          west build --build-dir build_qemu_olimex -t initlevels > zephyr_initlevels.txt 2>&1 || true
 
           echo ""
-          echo "===== FULL ZEPHYR INIT LEVELS ====="
+          echo "===== FULL OLIMEX ZEPHYR INIT LEVELS ====="
           cat zephyr_initlevels.txt || true
 
           echo ""
@@ -107,7 +117,7 @@ jobs:
           echo "===== INIT ORDER SUSPECTS ====="
           grep -nE "qemu_probe|clock|rcc|gpio|uart|usart|i2c|flash|rtc|wdt|iwdg|entropy|rng|reset|stm32" zephyr_initlevels.txt || true
 
-      - name: Run YOUR firmware in QEMU manually
+      - name: Run YOUR olimex_stm32_h405 firmware in QEMU manually
         run: |
           rm -f qemu_execution_report.txt
           rm -f qemu_stdout.log
@@ -131,6 +141,21 @@ jobs:
           rm -f qemu_uart6.raw.log
           rm -f qemu_uart7.raw.log
 
+          echo "===== QEMU VERSION ====="
+          qemu-system-arm --version || true
+
+          echo ""
+          echo "===== SUPPORTED QEMU MACHINES CONTAINING STM32/H405/OLIMEX ====="
+          qemu-system-arm -machine help | grep -Ei "olimex|stm32|h405|f405" || true
+
+          echo ""
+          echo "===== VERIFY REQUIRED MACHINE EXISTS ====="
+          if ! qemu-system-arm -machine help | grep -q "olimex-stm32-h405"; then
+            echo "FAIL: This QEMU version does not support machine olimex-stm32-h405."
+            echo "Use zephyrprojectrtos/ci:latest or a newer QEMU package."
+            exit 1
+          fi
+
           set +e
           timeout 60s qemu-system-arm \
             -machine olimex-stm32-h405 \
@@ -138,7 +163,7 @@ jobs:
             -display none \
             -monitor none \
             -semihosting-config enable=on,target=native \
-            -kernel build/zephyr/zephyr.elf \
+            -kernel build_qemu_olimex/zephyr/zephyr.elf \
             -serial file:qemu_uart0.raw.log \
             -serial file:qemu_uart1.raw.log \
             -serial file:qemu_uart2.raw.log \
@@ -152,28 +177,31 @@ jobs:
           EXIT_CODE=$?
           set -e
 
-          # Keep old stderr filename also.
+          touch qemu_stdout.log
+          touch qemu_semihost.log
+          touch qemu_uart0.raw.log
+          touch qemu_uart1.raw.log
+          touch qemu_uart2.raw.log
+          touch qemu_uart3.raw.log
+          touch qemu_uart4.raw.log
+          touch qemu_uart5.raw.log
+          touch qemu_uart6.raw.log
+          touch qemu_uart7.raw.log
+
           cp qemu_semihost.log qemu_stderr.log || true
-
-          # Firmware console is semihost output in this QEMU-safe build.
           cp qemu_semihost.log firmware_console.log || true
-
-          # Compatibility alias:
-          # qemu_uart0.log is a mirror of semihost output for easier artifact reading.
-          # qemu_uart0.raw.log remains the actual raw UART capture.
           cp qemu_semihost.log qemu_uart0.log || true
 
-          # Preserve raw UART captures separately.
-          cp qemu_uart1.raw.log qemu_uart1.log 2>/dev/null || true
-          cp qemu_uart2.raw.log qemu_uart2.log 2>/dev/null || true
-          cp qemu_uart3.raw.log qemu_uart3.log 2>/dev/null || true
-          cp qemu_uart4.raw.log qemu_uart4.log 2>/dev/null || true
-          cp qemu_uart5.raw.log qemu_uart5.log 2>/dev/null || true
-          cp qemu_uart6.raw.log qemu_uart6.log 2>/dev/null || true
-          cp qemu_uart7.raw.log qemu_uart7.log 2>/dev/null || true
+          cp qemu_uart1.raw.log qemu_uart1.log || true
+          cp qemu_uart2.raw.log qemu_uart2.log || true
+          cp qemu_uart3.raw.log qemu_uart3.log || true
+          cp qemu_uart4.raw.log qemu_uart4.log || true
+          cp qemu_uart5.raw.log qemu_uart5.log || true
+          cp qemu_uart6.raw.log qemu_uart6.log || true
+          cp qemu_uart7.raw.log qemu_uart7.log || true
 
           {
-            echo "===== QEMU STDOUT - YOUR FIRMWARE ====="
+            echo "===== QEMU STDOUT - YOUR OLIMEX FIRMWARE ====="
             cat qemu_stdout.log || true
             echo ""
 
@@ -221,7 +249,7 @@ jobs:
 
           if grep -aEq "MAIN_AFTER_STATUS_WORK_SCHEDULE|MAIN_AFTER_STATE_RUNNING|MAIN_QEMU_SKIP_NVS_CONFIG|MAIN_AFTER_LOG_INF|QEMU_BOOT_MARKER_ACTUAL_MAIN" qemu_execution_report.txt; then
             if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 0 ]; then
-              echo "PASS: Your actual application main() ran in QEMU."
+              echo "PASS: Your actual olimex_stm32_h405 application main() ran in QEMU."
               exit 0
             fi
 
@@ -300,13 +328,35 @@ jobs:
           fi
 
           echo "FAIL: Firmware QEMU run failed with exit code $EXIT_CODE."
-          exit 1    
-          
-          
-      - name: Emulation Test via QEMU (Cortex-M3)
+          exit 1
+
+      - name: Emulation Test via QEMU - Cortex-M3
         run: |
-          west build -b qemu_cortex_m3 . --pristine
-          timeout 10s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
+          west build -b qemu_cortex_m3 . \
+            --build-dir build_qemu_cortex_m3 \
+            --pristine -- \
+            -DQEMU_RUNTIME_PROBE=ON
+
+          set +e
+          timeout 10s west build \
+            --build-dir build_qemu_cortex_m3 \
+            -t run
+
+          EXIT_CODE=$?
+          set -e
+
+          if [ "$EXIT_CODE" -eq 124 ]; then
+            echo "PASS: qemu_cortex_m3 firmware booted and kept running."
+            exit 0
+          fi
+
+          if [ "$EXIT_CODE" -eq 0 ]; then
+            echo "PASS: qemu_cortex_m3 firmware ran and exited normally."
+            exit 0
+          fi
+
+          echo "FAIL: qemu_cortex_m3 firmware crashed or failed with exit code $EXIT_CODE."
+          exit 1
 
       - name: Upload QEMU execution logs
         if: always()
@@ -322,9 +372,15 @@ jobs:
             qemu_uart*.log
             qemu_uart*.raw.log
             zephyr_initlevels.txt
-            build/zephyr/zephyr.map
-            build/zephyr/zephyr.dts
-            build/zephyr/.config
+            build_nucleo/zephyr/zephyr.map
+            build_nucleo/zephyr/zephyr.dts
+            build_nucleo/zephyr/.config
+            build_qemu_olimex/zephyr/zephyr.map
+            build_qemu_olimex/zephyr/zephyr.dts
+            build_qemu_olimex/zephyr/.config
+            build_qemu_cortex_m3/zephyr/zephyr.map
+            build_qemu_cortex_m3/zephyr/zephyr.dts
+            build_qemu_cortex_m3/zephyr/.config
           if-no-files-found: ignore
 
       - name: Build and run host unit tests
