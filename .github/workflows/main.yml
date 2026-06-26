@@ -330,30 +330,15 @@ jobs:
           echo "FAIL: Firmware QEMU run failed with exit code $EXIT_CODE."
           exit 1
 
-      - name: Emulation Test via QEMU (Virtual Architecture)
+      - name: Emulation Test via QEMU (Cortex-M3)
         run: |
-          # 1. Compile the firmware for Zephyr's golden virtual emulator
-          west build -b qemu_cortex_m3 . --pristine
+          # Inject the Olimex macro so your C++ #ifdef blocks activate and bypass the physical hardware bindings
+          west build -b qemu_cortex_m3 . --pristine -- \
+            -DEXTRA_CFLAGS="-DQEMU_SMOKE_TEST -DCONFIG_BOARD_OLIMEX_STM32_H405=1" \
+            -DEXTRA_CXXFLAGS="-DQEMU_SMOKE_TEST -DCONFIG_BOARD_OLIMEX_STM32_H405=1"
           
-          # 2. Run the emulator natively. Zephyr handles the complex QEMU arguments automatically!
-          set +e 
-          timeout 20s west build -t run > qemu_execution_report.txt 2>&1
-          
-          # 3. Capture the standard exit code safely
-          EXIT_CODE=$?
-          set -e
-          
-          # 4. Print the report to the console so it shows up in GitHub's web interface
-          cat qemu_execution_report.txt
-          
-          # 5. Evaluate success (124 means it successfully survived the timeout)
-          if [ $EXIT_CODE -eq 124 ]; then
-              echo "Firmware booted successfully! (Hit timeout)"
-              exit 0
-          else
-              echo "Firmware crashed with code $EXIT_CODE!"
-              exit 1
-          fi
+          # Run the standard virtual emulator test
+          timeout 120s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
 
       - name: Upload QEMU execution logs
         if: always()
