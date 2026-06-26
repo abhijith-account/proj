@@ -2,12 +2,14 @@
 #include <zephyr/kernel.h>
 #include "Smart_Battery_System.h"
 #include <zephyr/device.h>
+
 #ifdef IS_TEST_ENVIRONMENT
     extern bool run_thread_once;
     #define THREAD_LOOP_CONDITION (run_thread_once ? (run_thread_once = false, true) : false)
 #else
     #define THREAD_LOOP_CONDITION true
 #endif
+
 extern DeviceContext sys_context;
 LOG_MODULE_REGISTER(BATTERY_SYS,LOG_LEVEL_INF);
 
@@ -18,32 +20,53 @@ SbsBattery smart_battery(&i2c_bus_manager,&sys_context);
 SbsBattery::SbsBattery(I2CManager* bus, DeviceContext* context): i2c_bus(bus), sys_context(context), current_state(BatteryFSM::IDLE), full_charge_logged(false){}
 
 Result<uint16_t> SbsBattery::getVoltage(){
+#ifdef CONFIG_QEMU_CORTEX_M4
+    return Result<uint16_t>::Ok(4100); /* Mock 4.1V */
+#else
     return i2c_bus->readWord(SBS_ADDR, REG_VOLTAGE);
+#endif
 }
 
 Result<int16_t> SbsBattery::getCurrent(){
+#ifdef CONFIG_QEMU_CORTEX_M4
+    return Result<int16_t>::Ok(-150); /* Mock -150mA discharge */
+#else
     auto res=i2c_bus->readWord(SBS_ADDR, REG_CURRENT);
     if (!res.success) {
         return Result<int16_t>::Err(res.error);
     }
     return Result<int16_t>::Ok(static_cast<int16_t>(res.value));
+#endif
 }
 
 Result<uint8_t> SbsBattery::getStateOfCharge(){
+#ifdef CONFIG_QEMU_CORTEX_M4
+    return Result<uint8_t>::Ok(95); /* Mock 95% SoC */
+#else
     auto res=i2c_bus->readWord(SBS_ADDR, REG_SOC);
     if (!res.success){
         return Result<uint8_t>::Err(res.error);
     }
     return Result<uint8_t>::Ok(static_cast<uint8_t>(res.value));
+#endif
 }
 
 Result<uint16_t> SbsBattery::getTemperature(){
+#ifdef CONFIG_QEMU_CORTEX_M4
+    return Result<uint16_t>::Ok(2980); /* Mock 298.0K (25C) */
+#else
     return i2c_bus->readWord(SBS_ADDR, REG_TEMP);
+#endif
 }
 
 Result<uint16_t>  SbsBattery::getCapacity(){
+#ifdef CONFIG_QEMU_CORTEX_M4
+    return Result<uint16_t>::Ok(2500); /* Mock 2500mAh */
+#else
     return i2c_bus->readWord(SBS_ADDR, REG_CAPACITY);
+#endif
 }
+
 void SbsBattery::processFSM(){
     auto current_res=getCurrent();
     auto soc_res=getStateOfCharge();
@@ -114,4 +137,5 @@ void battery_monitor_thread(void){
     }while(THREAD_LOOP_CONDITION);
 }
 
+// Notice the stack size is bumped up to 1024 to prevent the overflow you experienced earlier!
 K_THREAD_DEFINE(battery_tid,1024,battery_monitor_thread,NULL,NULL,NULL,10,0,0);
