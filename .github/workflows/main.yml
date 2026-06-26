@@ -27,16 +27,6 @@ jobs:
         run: |
           west init -l .
           west update
-          
-          # Force the Zephyr tree to the 3.7 LTS branch
-          echo "Switching Zephyr tree to v3.7-branch..."
-          cd zephyr
-          git fetch origin v3.7-branch
-          git checkout v3.7-branch
-          cd ..
-          
-          # Run update again to align third-party modules with 3.7.x dependencies
-          west update
           west zephyr-export
 
           SDK_DIR=$(ls -d /opt/toolchains/zephyr-sdk-* | head -n 1)
