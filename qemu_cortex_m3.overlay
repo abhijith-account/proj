@@ -2,7 +2,6 @@
 
 / {
     aliases {
-        /* This explicitly creates the alias expected by DT_ALIAS(cdc_acm_uart0) */
         cdc-acm-uart0 = &uart0;
     };
 
@@ -15,18 +14,22 @@
         #size-cells = <0>;
     };
 
-    /* 2. Mock Watchdog */
+    /* 2. Mock Watchdog (Spoofed as I2C to generate linker symbol) */
     iwdg: fake_watchdog@40002000 {
-        compatible = "vnd,watchdog";
+        compatible = "vnd,i2c";
         reg = <0x40002000 0x1000>;
         status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
     };
 
-    /* 3. Mock RTC */
+    /* 3. Mock RTC (Spoofed as I2C to generate linker symbol) */
     rtc: fake_rtc@40003000 {
-        compatible = "vnd,rtc";
+        compatible = "vnd,i2c";
         reg = <0x40003000 0x1000>;
         status = "okay";
+        #address-cells = <1>;
+        #size-cells = <0>;
     };
 
     /* 4. Simulated Flash for NVS */
@@ -58,7 +61,6 @@
     };
 };
 
-/* Enable the hardware UART that the alias points to */
 &uart0 {
     status = "okay";
 };
