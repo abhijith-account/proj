@@ -1,4 +1,4 @@
-#include <zephyr/fs/nvs.h>
+#include <zephyr/kvss/nvs.h>
 #include <zephyr/logging/log.h>
 #include <type_traits>
 #include <cstdint>
