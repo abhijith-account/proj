@@ -34,7 +34,7 @@ jobs:
           
       - name: Cross Compile for STM32 ARM (Zero Warnings)
         run: |
-          west build -b nucleo_f446re . --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y -DEXTRA_CFLAGS="-Wno-error=deprecated-declarations"
+          west build -b nucleo_f446re . --pristine -- -DCONFIG_COMPILER_WARNINGS_AS_ERRORS=y -DEXTRA_CFLAGS="-Wno-error=deprecated-declarations" -DEXTRA_CXXFLAGS="-Wno-error=deprecated-declarations"
 
       - name: Install required packages
         run: |
