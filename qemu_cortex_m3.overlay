@@ -1,6 +1,11 @@
 /* qemu_cortex_m3.overlay */
 
 / {
+    aliases {
+        /* This explicitly creates the alias expected by DT_ALIAS(cdc_acm_uart0) */
+        cdc-acm-uart0 = &uart0;
+    };
+
     /* 1. Mock I2C Bus */
     i2c1: fake_i2c@40001000 {
         compatible = "vnd,i2c";
@@ -17,7 +22,7 @@
         status = "okay";
     };
 
-    /* 3. Mock RTC (Replaces the broken &timer0 hardware reference) */
+    /* 3. Mock RTC */
     rtc: fake_rtc@40003000 {
         compatible = "vnd,rtc";
         reg = <0x40003000 0x1000>;
@@ -53,7 +58,7 @@
     };
 };
 
-/* 5. Attach your USB CDC Shell alias to the virtual TI UART */
-cdc_acm_uart0: &uart0 {
+/* Enable the hardware UART that the alias points to */
+&uart0 {
     status = "okay";
 };
