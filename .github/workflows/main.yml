@@ -17,7 +17,7 @@ jobs:
   build-test-qemu:
     runs-on: ubuntu-latest
     # Pinned to the official CI container version for Zephyr 3.7.x LTS
-    container: zephyrprojectrtos/ci:v0.26.11
+    container: zephyrprojectrtos/ci:latest
 
     steps:
       - name: Checkout repository
