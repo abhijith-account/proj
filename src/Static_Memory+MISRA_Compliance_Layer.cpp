@@ -17,4 +17,4 @@ void memory_monitor_thread(void){
     }while(THREAD_LOOP_CONDITION);
 }
 
-K_THREAD_DEFINE(mem_mon_tid,1024,memory_monitor_thread,NULL,NULL,NULL,11,0,0);
+K_THREAD_DEFINE(mem_mon_tid,1536,memory_monitor_thread,NULL,NULL,NULL,11,0,0);

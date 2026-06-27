@@ -93,6 +93,6 @@ void logger_thread(void){
     }while(THREAD_LOOP_CONDITION);
 }
 
-K_THREAD_DEFINE(producer_tid,1024,producer_thread,NULL,NULL,NULL,5,0,0);
+K_THREAD_DEFINE(producer_tid,512,producer_thread,NULL,NULL,NULL,5,0,0);
 K_THREAD_DEFINE(processor_tid,1024,processor_thread,NULL,NULL,NULL,6,0,0);
-K_THREAD_DEFINE(logger_tid,256,logger_thread,NULL,NULL,NULL,7,0,0);
+K_THREAD_DEFINE(logger_tid,512,logger_thread,NULL,NULL,NULL,7,0,0);

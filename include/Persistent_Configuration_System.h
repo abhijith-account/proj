@@ -32,7 +32,7 @@ class ConfigStore {
                 return false;
             }
             
-#ifdef CONFIG_NVS
+#if defined(CONFIG_NVS) || defined(IS_TEST_ENVIRONMENT)
             uint16_t nvs_id=static_cast<uint16_t>(key);
             ssize_t written=nvs_write(&fs,nvs_id,&value,sizeof(T));
             
@@ -50,7 +50,7 @@ class ConfigStore {
                   return false;
               }
               
-#ifdef CONFIG_NVS
+#if defined(CONFIG_NVS) || defined(IS_TEST_ENVIRONMENT)
               uint16_t nvs_id=static_cast<uint16_t>(key);
               ssize_t bytes_read=nvs_read(&fs,nvs_id,&out_value,sizeof(T));
               
