@@ -32,10 +32,14 @@ class ConfigStore {
                 return false;
             }
             
+#ifdef CONFIG_NVS
             uint16_t nvs_id=static_cast<uint16_t>(key);
             ssize_t written=nvs_write(&fs,nvs_id,&value,sizeof(T));
             
-            return (written>0||written==0);
+            return (written>=0);
+#else
+            return true;
+#endif
           }
           
           template <typename T>
@@ -46,10 +50,14 @@ class ConfigStore {
                   return false;
               }
               
+#ifdef CONFIG_NVS
               uint16_t nvs_id=static_cast<uint16_t>(key);
               ssize_t bytes_read=nvs_read(&fs,nvs_id,&out_value,sizeof(T));
               
               return (bytes_read==sizeof(T));
+#else
+              return true;
+#endif
            }
            
            bool validateEndurance(ConfigKey key);

@@ -14,11 +14,6 @@ target_sources(app PRIVATE
 )
 
 if(QEMU_RUNTIME_PROBE)
-    # This block now automatically defines the macros your C++ code expects
-    target_compile_definitions(app PRIVATE
-        CONFIG_BOARD_QEMU_CORTEX_M3=1
-    )
-
     target_sources(app PRIVATE
         src/QEMU_Startup_Probe.c
         src/Device_State_Machine_QEMU_Stub.cpp
