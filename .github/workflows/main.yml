@@ -333,9 +333,7 @@ jobs:
       - name: Emulation Test via QEMU (Cortex-M3)
         run: |
           # Inject the Olimex macro so your C++ #ifdef blocks activate and bypass the physical hardware bindings
-          west build -b qemu_cortex_m3 . --pristine -- \
-            -DEXTRA_CFLAGS="-DQEMU_SMOKE_TEST -DCONFIG_BOARD_OLIMEX_STM32_H405=1" \
-            -DEXTRA_CXXFLAGS="-DQEMU_SMOKE_TEST -DCONFIG_BOARD_OLIMEX_STM32_H405=1"
+          west build -b qemu_cortex_m3 . --pristine 
           
           # Run the standard virtual emulator test
           timeout 120s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
