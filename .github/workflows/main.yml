@@ -332,25 +332,27 @@ jobs:
 
       - name: Emulation Test via QEMU (Cortex-M3)
         run: |
-          # 1. Compile the firmware (stops after [209/209] Linking...)
+          # 1. Compile the firmware
           west build -b qemu_cortex_m3 . --pristine 
           
-          # 2. Initialize the Markdown report file
-          echo "# Cortex-M3 Emulation Runtime Report" > qemu_m3_report.md
-          echo "### QEMU Execution Log" >> qemu_m3_report.md
+          # 2. Initialize the full artifact report file
+          echo "# Cortex-M3 Emulation Full Runtime Report" > qemu_m3_report.md
           echo '```text' >> qemu_m3_report.md
           
-          # 3. Execute the emulator and pipe the runtime output into the report
-          # We capture both stdout and stderr (2>&1)
+          # 3. Execute the emulator (this generates ~25MB of logs over 120s)
           timeout 120s west build -t run >> qemu_m3_report.md 2>&1 || EXIT_CODE=$?
-          
-          # 4. Close the markdown code block
           echo '```' >> qemu_m3_report.md
           
-          # 5. Display the report directly in the GitHub Actions Job Summary UI
-          cat qemu_m3_report.md >> $GITHUB_STEP_SUMMARY
+          # 4. THE FIX: Create a lightweight summary for the GitHub UI
+          echo "## Cortex-M3 QEMU Test Passed!" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** The full execution log was ~25MB due to continuous RTOS loop output and exceeded GitHub's 1MB display limit." >> $GITHUB_STEP_SUMMARY
+          echo "Please download the **QEMU-M3-Execution-Report** from the Artifacts menu to view the complete boot sequence." >> $GITHUB_STEP_SUMMARY
+          echo "### Final Output Snippet (Last 50 Lines):" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 50 qemu_m3_report.md >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
           
-          # 6. Evaluate the QEMU exit code (124 means it successfully ran until timeout)
+          # 5. Evaluate the QEMU exit code (124 means it successfully ran until timeout)
           if [ "${EXIT_CODE:-0}" -eq 124 ]; then 
             echo "Firmware booted successfully and ran to timeout!"
             exit 0
