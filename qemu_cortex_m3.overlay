@@ -1,11 +1,9 @@
-/* qemu_cortex_m3.overlay */
-
 / {
     aliases {
         cdc-acm-uart0 = &uart0;
     };
 
-    /* 1. Mock I2C Bus */
+    /* The Golden Stub: We map all missing hardware to the I2C test driver */
     i2c1: fake_i2c@40001000 {
         compatible = "vnd,i2c";
         reg = <0x40001000 0x1000>;
@@ -14,7 +12,6 @@
         #size-cells = <0>;
     };
 
-    /* 2. Mock Watchdog (Spoofed as I2C to generate linker symbol) */
     iwdg: fake_watchdog@40002000 {
         compatible = "vnd,i2c";
         reg = <0x40002000 0x1000>;
@@ -23,7 +20,6 @@
         #size-cells = <0>;
     };
 
-    /* 3. Mock RTC (Spoofed as I2C to generate linker symbol) */
     rtc: fake_rtc@40003000 {
         compatible = "vnd,i2c";
         reg = <0x40003000 0x1000>;
@@ -32,7 +28,7 @@
         #size-cells = <0>;
     };
 
-    /* 4. Simulated Flash for NVS */
+    /* Simulated Flash Drive for NVS */
     sim_flash: sim_flash@50000000 {
         compatible = "zephyr,sim-flash";
         reg = <0x50000000 0x8000>;
@@ -59,8 +55,4 @@
             };
         };
     };
-};
-
-&uart0 {
-    status = "okay";
 };
