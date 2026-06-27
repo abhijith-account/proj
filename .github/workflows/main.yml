@@ -332,11 +332,40 @@ jobs:
 
       - name: Emulation Test via QEMU (Cortex-M3)
         run: |
-          # Inject the Olimex macro so your C++ #ifdef blocks activate and bypass the physical hardware bindings
+          # 1. Compile the firmware (stops after [209/209] Linking...)
           west build -b qemu_cortex_m3 . --pristine 
           
-          # Run the standard virtual emulator test
-          timeout 120s west build -t run || if [ $? -eq 124 ]; then echo "Firmware booted successfully!"; exit 0; else echo "Firmware crashed!"; exit 1; fi
+          # 2. Initialize the Markdown report file
+          echo "# Cortex-M3 Emulation Runtime Report" > qemu_m3_report.md
+          echo "### QEMU Execution Log" >> qemu_m3_report.md
+          echo '```text' >> qemu_m3_report.md
+          
+          # 3. Execute the emulator and pipe the runtime output into the report
+          # We capture both stdout and stderr (2>&1)
+          timeout 120s west build -t run >> qemu_m3_report.md 2>&1 || EXIT_CODE=$?
+          
+          # 4. Close the markdown code block
+          echo '```' >> qemu_m3_report.md
+          
+          # 5. Display the report directly in the GitHub Actions Job Summary UI
+          cat qemu_m3_report.md >> $GITHUB_STEP_SUMMARY
+          
+          # 6. Evaluate the QEMU exit code (124 means it successfully ran until timeout)
+          if [ "${EXIT_CODE:-0}" -eq 124 ]; then 
+            echo "Firmware booted successfully and ran to timeout!"
+            exit 0
+          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "Firmware crashed with exit code $EXIT_CODE!"
+            exit 1
+          fi
+
+      - name: Upload QEMU M3 Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QEMU-M3-Execution-Report
+          path: qemu_m3_report.md
+          if-no-files-found: error
 
       - name: Upload QEMU execution logs
         if: always()
